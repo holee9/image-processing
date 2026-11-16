@@ -24,8 +24,8 @@
  *     img->data; caller owns the new buffer).  Using it would force the test
  *     to also exercise the caller-free contract, which is a separate concern
  *     from "does the module leak across init/shutdown cycles?".
- *   - The process path uses readout validate + temperature compensation + in-place
- *     offset correction.  All three are documented as non-allocating and
+ *   - The process path uses readout validate + in-place
+ *     offset correction.  Both are documented as non-allocating and
  *     operate on the caller-owned uint16 buffer in-place.
  *   - A warm-up (heap_growth::kWarmup) is executed first so that any one-shot allocations
  *     inside the module (logger buffers, config JSON parse arenas, DLL lazy
@@ -41,9 +41,6 @@
 #include "xpe/common/xpe_types.h"
 #include "xpe/common/xpe_error.h"
 
-// Not in new public header; still exported by DLL
-extern "C" XPE_API XpeErrorCode xpe_temp_compensate(XpeImageBuffer* img,
-    float detectorTempC, const char* configJsonOrNull);
 
 #include <vector>
 #include <cstdint>
@@ -77,8 +74,6 @@ static void run_one_frame(XpeImageBuffer& rawBuf,
     bool dropped = false, nonuniform = false;
     EXPECT_EQ(XPE_OK, xpe_validate_readout_artifact(
         &rawBuf, &meta, &dropped, &nonuniform));
-
-    EXPECT_EQ(XPE_OK, xpe_temp_compensate(&rawBuf, 25.0f, nullptr));
 
     // QA-A-148 (#212): MEASURED -- rc is XPE_ERR_CALIB_NOT_LOADED, on all 2200
     // calls of a run, identical in the default order and under shuffle seeds

@@ -1344,7 +1344,7 @@ std::vector<float> g_hist1_0, g_hist2_0;
 
 // Long enough that reading it allocates (std::string keeps up to 15 characters inline), and every stage on.
 const char* const kConfig =
-    "{\"detectorTempC\":\"25.5\",\"binningMode\":\"2\",\"note\":\"padding so that this configuration does "
+    "{\"binningMode\":\"2\",\"note\":\"padding so that this configuration does "
     "not fit in a small string: 0123456789012345678901234567890123456789012345678901234567890123456789\"}";
 
 uint64_t storeDigest() {
@@ -1557,7 +1557,7 @@ using Entry = std::function<XpeErrorCode(Frame&, const char* config)>;
 
 // Readout validation (stage 0.5) looks at dataSize itself, so a refusal there is not the pipeline's own; this
 // configuration leaves it out.
-const char* const kNoReadout = "{\"bypassReadout\":true,\"detectorTempC\":\"25.5\",\"binningMode\":\"2\"}";
+const char* const kNoReadout = "{\"bypassReadout\":true,\"binningMode\":\"2\"}";
 
 struct Entries { const char* name; Entry call; };
 
@@ -1814,7 +1814,7 @@ namespace dcap {
 // Every stage that makes float is bypassed: what the pipeline hands back is the uint16 frame.
 const char* const kUint16Out =
     "{\"bypassReadout\":true,\"bypassGain\":true,\"bypassBinning\":true,\"bypassDefect\":true,"
-    "\"bypassGhost\":true,\"detectorTempC\":\"25.5\"}";
+    "\"bypassGhost\":true}";
 
 // No stage runs: the final stage is the caller's own buffer, so the frame comes back as it went in and there is
 // nothing to copy (a copy of a range onto itself is undefined, which is why the product skips it).
@@ -2384,7 +2384,7 @@ namespace combo {
 struct Config { bool temp, offset, gain; int binning; bool defect, ghost; };   // binning: 0 bypassed, 1, 2
 
 std::string json(const Config& c) {
-    std::string j = "{\"bypassReadout\":true,\"bypassNonlinearity\":true,\"detectorTempC\":\"25.5\"";
+    std::string j = "{\"bypassReadout\":true,\"bypassNonlinearity\":true";
     j += c.temp ? ",\"bypassTemp\":false" : ",\"bypassTemp\":true";
     j += c.offset ? ",\"bypassOffset\":false" : ",\"bypassOffset\":true";
     j += c.gain ? ",\"bypassGain\":false" : ",\"bypassGain\":true";

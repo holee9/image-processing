@@ -1,8 +1,8 @@
 /**
  * @file test_temp_nonlinearity_binning.cpp
- * @brief TDD RED tests for SWU-1.6/1.7/1.8:
- *        xpe_temp_compensate, xpe_nonlinearity_correct, xpe_binning_correct
- *        REQ-P1A-080 to REQ-P1A-082 (temp), REQ-P1A-090/091 (binning)
+ * @brief TDD RED tests for SWU-1.7/1.8:
+ *        xpe_nonlinearity_correct, xpe_binning_correct
+ *        REQ-P1A-090/091 (binning). The temperature tests (SWU-1.6) were removed with the stage (QA-A-335).
  *
  * Nonlinearity correction is exercised here too. Its requirement is
  * SRS-CALIB-FUNC-006 / -006-EXT (SRS-CALIB-001), cited by the implementation
@@ -63,40 +63,6 @@ static XpeImageBuffer make_uint8_buf(std::vector<uint8_t>& data, uint32_t w, uin
     buf.format        = XPE_PIXEL_UINT8;
     buf.dataSize      = data.size();
     return buf;
-}
-
-/* === Temperature Compensation === */
-
-TEST(TempCompensate, NullImgReturnsError) {
-    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_temp_compensate(nullptr, 25.0f, nullptr));
-}
-
-// REQ-P1A-081: NaN temperature uses 25.0C fallback — must not return error
-TEST(TempCompensate, NanTemperatureUsesFallback) {
-    std::vector<uint16_t> data(16, 1000);
-    XpeImageBuffer buf = make_uint16_buf(data, 4, 4);
-    float nan_temp = std::numeric_limits<float>::quiet_NaN();
-    EXPECT_EQ(XPE_OK, xpe_temp_compensate(&buf, nan_temp, nullptr));
-}
-
-// REQ-P1A-081: temperature out of [-20, +60] returns XPE_ERR_INVALID_INPUT
-TEST(TempCompensate, TempBelowRangeReturnsError) {
-    std::vector<uint16_t> data(16, 1000);
-    XpeImageBuffer buf = make_uint16_buf(data, 4, 4);
-    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_temp_compensate(&buf, -25.0f, nullptr));
-}
-
-TEST(TempCompensate, TempAboveRangeReturnsError) {
-    std::vector<uint16_t> data(16, 1000);
-    XpeImageBuffer buf = make_uint16_buf(data, 4, 4);
-    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_temp_compensate(&buf, 65.0f, nullptr));
-}
-
-TEST(TempCompensate, ValidTempAtBoundaryReturnsOk) {
-    std::vector<uint16_t> data(16, 1000);
-    XpeImageBuffer buf = make_uint16_buf(data, 4, 4);
-    EXPECT_EQ(XPE_OK, xpe_temp_compensate(&buf, -20.0f, nullptr));
-    EXPECT_EQ(XPE_OK, xpe_temp_compensate(&buf, 60.0f, nullptr));
 }
 
 /* === Nonlinearity Correction === */

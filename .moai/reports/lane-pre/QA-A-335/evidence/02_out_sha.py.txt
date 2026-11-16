@@ -1,0 +1,12 @@
+# QA-A-335: sha256 of the shipped pipeline output (xpe_preprocess_pipeline, calibPath = cyan_test clean set, default config) for Bright_29.
+import ctypes as C, numpy as np, os, sys, hashlib
+os.add_dll_directory(sys.argv[1]); dll = C.CDLL(sys.argv[1] + "/xpe_preprocess.dll")
+class Buf(C.Structure): _fields_ = [("width", C.c_uint32), ("height", C.c_uint32), ("bitsAllocated", C.c_uint32), ("bitsStored", C.c_uint32), ("format", C.c_int), ("data", C.c_void_p), ("dataSize", C.c_size_t)]
+class Meta(C.Structure): _fields_ = [("bodyPart", C.c_char * 64), ("kVp", C.c_float), ("mAs", C.c_float), ("SID_mm", C.c_float), ("pixelPitch_mm", C.c_float), ("acquisitionTime", C.c_uint64), ("flags", C.c_uint32)]
+dll.xpe_preprocess_init.argtypes = [C.c_char_p]; print("init rc", dll.xpe_preprocess_init(None))
+dll.xpe_preprocess_pipeline.argtypes = [C.POINTER(Buf), C.POINTER(Meta), C.c_char_p, C.c_void_p, C.c_char_p]
+raw = np.fromfile(sys.argv[3], dtype=np.uint16); store = np.zeros(raw.size * 2, dtype=np.uint16); store[:raw.size] = raw
+b = Buf(3072, 3072, 16, 16, 0, store.ctypes.data, store.nbytes); m = Meta()
+rc = dll.xpe_preprocess_pipeline(C.byref(b), C.byref(m), sys.argv[2].encode(), None, None)
+out = store.view(np.float32)[:raw.size]
+print("rc", rc, "format", b.format, "flags 0x%x" % m.flags, "sha256", hashlib.sha256(out.tobytes()).hexdigest())

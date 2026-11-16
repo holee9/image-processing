@@ -33,8 +33,6 @@ extern "C" XPE_API XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height
 extern "C" XPE_API XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img,
     const XpeImageMetadata* meta);
 extern "C" XPE_API void xpe_ghost_destroy(void* handle);
-extern "C" XPE_API XpeErrorCode xpe_temp_compensate(XpeImageBuffer* img,
-    float detectorTempC, const char* configJsonOrNull);
 extern "C" XPE_API XpeErrorCode xpe_nonlinearity_correct(XpeImageBuffer* img,
     const char* configJsonOrNull);
 
@@ -285,37 +283,13 @@ TEST(PreprocessDegraded, BP04_GhostZeroLagCoefficientIsIdentity) {
  * BP-05-DEG: Temperature/Nonlinearity, flat curve (identity correction)
  *
  * Expectation:
- *   - Temperature compensation at T=25C (reference, REQ-P1A-080) applies scale = 1.0,
- *     so pixel values are preserved.
+ *   - (The temperature compensation case was removed with the stage, QA-A-335.)
  *   - Nonlinearity correction with null config is a documented no-op and
  *     must return XPE_OK with unchanged pixels. Requirement: SRS-CALIB-FUNC-006
  *     (f_nonlin is supplied by the calibration profile; the null-config
  *     sentence itself is not in the SRS). NOT REQ-P1A-013: in the current
  *     SPEC that number is runtime defect detection (QA-A-176).
  * ========================================================================== */
-
-TEST(PreprocessDegraded, BP05_TempCompensateReferenceIsIdentity) {
-    constexpr uint32_t W = 128;
-    constexpr uint32_t H = 128;
-    constexpr uint16_t kPixelValue = 2000;
-
-    std::vector<uint16_t> data(W * H, kPixelValue);
-    XpeImageBuffer buf = make_uint16_buf(data, W, H);
-
-    XpeErrorCode rc = XPE_OK;
-    const long long ms = time_ms([&] {
-        rc = xpe_temp_compensate(&buf, 25.0f, nullptr);
-    });
-
-    EXPECT_EQ(XPE_OK, rc);
-    EXPECT_LT(ms, kDegradedBudgetMs);
-
-    // At the reference temperature (25C), scale == 1.0 -> identity.
-    for (size_t i = 0; i < data.size(); ++i) {
-        EXPECT_EQ(kPixelValue, data[i])
-            << "Reference-temperature compensation must be identity at pixel " << i;
-    }
-}
 
 TEST(PreprocessDegraded, BP05_NonlinearityNullConfigIsIdentity) {
     constexpr uint32_t W = 128;

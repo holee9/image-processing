@@ -72,8 +72,7 @@ protected:
         img.format = XPE_PIXEL_UINT16;
         img.dataSize = N * sizeof(float);
 
-        // The pipeline reads the detector temperature from its config JSON
-        // (`detectorTempC`), not from metadata, so a zeroed metadata is enough.
+        // A zeroed metadata is enough: no stage under test reads it.
         meta = XpeImageMetadata{};
     }
 
@@ -103,21 +102,20 @@ protected:
     }
 };
 
-// Readout validation and temperature compensation need no calibration, so a
-// config that bypasses only the calibration stages runs both bodies to
-// completion and records their metadata flags.
-TEST_F(PipelineStageTest, ReadoutAndTempStagesRunAndSetFlags) {
+// Readout validation needs no calibration, so a config that bypasses only the
+// calibration stages runs its body to completion and records its metadata flag.
+// QA-A-335: the temperature stage is removed -- its flag is never set any more.
+TEST_F(PipelineStageTest, ReadoutStageRunsAndNoTemperatureFlag) {
     const char* config =
         "{\"bypassOffset\":true,\"bypassGain\":true,\"bypassDefect\":true,"
-        "\"bypassGhost\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true,"
-        "\"detectorTempC\":30.0}";
+        "\"bypassGhost\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";
 
     ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline(&img, &meta, nullptr, nullptr, config));
 
     EXPECT_TRUE(meta.flags & XPE_FLAG_READOUT_VALIDATED)
         << "the readout stage body must have run";
-    EXPECT_TRUE(meta.flags & XPE_FLAG_TEMP_COMPENSATED)
-        << "the temperature stage body must have run";
+    EXPECT_FALSE(meta.flags & XPE_FLAG_TEMP_COMPENSATED)
+        << "the temperature stage is removed (QA-A-335)";
 }
 
 // The nonlinearity and binning bodies run on their own too.
@@ -198,7 +196,7 @@ TEST_F(PipelineStageTest, AllStagesEnabledRunInSequence) {
     ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline(&img, &meta, nullptr, nullptr, config));
 
     EXPECT_TRUE(meta.flags & XPE_FLAG_READOUT_VALIDATED);
-    EXPECT_TRUE(meta.flags & XPE_FLAG_TEMP_COMPENSATED);
+    EXPECT_FALSE(meta.flags & XPE_FLAG_TEMP_COMPENSATED);   // QA-A-335: stage removed
     EXPECT_TRUE(meta.flags & XPE_FLAG_OFFSET_CORRECTED);
     EXPECT_TRUE(meta.flags & XPE_FLAG_GAIN_CORRECTED);
 }

@@ -65,11 +65,8 @@ XpeErrorCode callSafely(const std::function<XpeErrorCode()>& f, bool* threw) {
 }
 
 const char* kBadNumbers[] = {
-    "\"detectorTempC\":\"abc\"",                        // not a number
     "\"binningMode\":\"x\"",                            // not a number
-    "\"detectorTempC\":\"1e999\"",                      // out of range for any float
     "\"binningMode\":\"99999999999999999999\"",         // out of range for int
-    "\"detectorTempC\":\"25.5x\"",                      // a number followed by garbage
     "\"binningMode\":\"2x\"",                           // an integer followed by garbage
 };
 
@@ -121,10 +118,9 @@ TEST_F(ConfigStrictParse, PipelineExAcceptsOrdinaryNumbers) {
     // Control: the same call shape with well-formed values still succeeds, so the refusals above are
     // about the value and not about the call.
     const char* good[] = {
-        "\"detectorTempC\":\"25.5\",\"binningMode\":\"1\"",
-        "\"detectorTempC\":-5.5,\"binningMode\":2",
-        "\"detectorTempC\":\"0\",\"binningMode\":\"4\"",
-        "\"detectorTempC\":\"3.0e1\"",
+        "\"binningMode\":\"1\"",
+        "\"binningMode\":2",
+        "\"binningMode\":\"4\"",
         "\"binningMode\":\"-1\"",
     };
     for (const char* g : good) {
@@ -161,7 +157,7 @@ TEST_F(ConfigStrictParse, PipelineWithAMalformedConfigLoadsNoCalibration) {
     std::vector<uint16_t> pixels(N, 1000);
     XpeImageBuffer img = buf(pixels.data(), XPE_PIXEL_UINT16, 16);
     XpeImageMetadata meta{};
-    const std::string bad = cfg("\"detectorTempC\":\"abc\"");
+    const std::string bad = cfg("\"binningMode\":\"x\"");
     bool threw = false;
     XpeErrorCode rc = callSafely([&] {
         return xpe_preprocess_pipeline(&img, &meta, "csp_calib", nullptr, bad.c_str());
@@ -171,7 +167,7 @@ TEST_F(ConfigStrictParse, PipelineWithAMalformedConfigLoadsNoCalibration) {
     EXPECT_FALSE(offsetLoaded()) << "a refused configuration must not have loaded the calibration files";
 
     // Control: with a good configuration the same call does load them.
-    const std::string good = cfg("\"detectorTempC\":\"25\"");
+    const std::string good = cfg("\"binningMode\":\"1\"");
     rc = callSafely([&] { return xpe_preprocess_pipeline(&img, &meta, "csp_calib", nullptr, good.c_str()); }, &threw);
     EXPECT_FALSE(threw);
     EXPECT_EQ(XPE_OK, rc);
@@ -281,7 +277,10 @@ std::string jsonStringBody(const std::string& v) {
 using EntryCall = std::function<XpeErrorCode(const std::string& field, const std::string& value)>;
 
 void runTable(const char* entry, const char* realField, const char* intField, const EntryCall& call) {
+    // QA-A-335: the pipeline entry points have no real-valued key any more (the temperature key went with the temperature
+    // stage), so they pass nullptr and the real rows are not run for them.
     for (const NumberRow& r : kRealRows) {
+        if (realField == nullptr) break;
         SCOPED_TRACE(std::string(entry) + " " + realField + " = \"" + r.value + "\"");
         bool threw = false;
         const XpeErrorCode rc = callSafely([&] { return call(realField, r.value); }, &threw);
@@ -304,21 +303,21 @@ std::string pipelineConfig(const std::string& field, const std::string& value) {
 }  // namespace
 
 TEST_F(ConfigStrictParse, TheAcceptedNotationOfThePipelineEntryPointsIsFixedByATable) {
-    runTable("pipeline_ex", "detectorTempC", "binningMode", [](const std::string& f, const std::string& v) {
+    runTable("pipeline_ex", nullptr, "binningMode", [](const std::string& f, const std::string& v) {
         std::vector<uint16_t> pixels(N, 1000);
         XpeImageBuffer img = buf(pixels.data(), XPE_PIXEL_UINT16, 16);
         XpeImageMetadata meta{};
         const std::string c = pipelineConfig(f, v);
         return xpe_preprocess_pipeline_ex(&img, &meta, nullptr, nullptr, c.c_str());
     });
-    runTable("pipeline", "detectorTempC", "binningMode", [](const std::string& f, const std::string& v) {
+    runTable("pipeline", nullptr, "binningMode", [](const std::string& f, const std::string& v) {
         std::vector<uint16_t> pixels(N, 1000);
         XpeImageBuffer img = buf(pixels.data(), XPE_PIXEL_UINT16, 16);
         XpeImageMetadata meta{};
         const std::string c = pipelineConfig(f, v);
         return xpe_preprocess_pipeline(&img, &meta, nullptr, nullptr, c.c_str());
     });
-    runTable("pipeline_batch", "detectorTempC", "binningMode", [](const std::string& f, const std::string& v) {
+    runTable("pipeline_batch", nullptr, "binningMode", [](const std::string& f, const std::string& v) {
         std::vector<uint16_t> pixels(N, 1000);
         XpeImageBuffer img = buf(pixels.data(), XPE_PIXEL_UINT16, 16);
         XpeImageMetadata meta{};
@@ -466,9 +465,9 @@ TEST_F(ConfigStrictParse, AQualityFieldThatIsAbsentIsStillNotGivenAndThePipeline
     std::vector<uint16_t> data(N, 1000);
     XpeImageBuffer img = buf(data.data(), XPE_PIXEL_UINT16, 16);
     XpeImageMetadata meta{};
-    const char* cfg = "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassOffset\":true,\"bypassNonlinearity\":true,"
+    const char* cfg = "{\"bypassReadout\":true,\"bypassOffset\":true,\"bypassNonlinearity\":true,"
                       "\"bypassGain\":true,\"bypassBinning\":true,\"bypassDefect\":true,\"bypassGhost\":true,"
-                      "\"detectorTempC\":\"\",\"binningMode\":\"\"}";
+                      "\"binningMode\":\"\"}";
     EXPECT_EQ(XPE_OK, xpe_preprocess_pipeline_ex(&img, &meta, nullptr, nullptr, cfg))
         << "an empty configuration value is an absent one (QA-A-202b), unchanged by QA-A-205b";
 }
@@ -1021,7 +1020,6 @@ TEST_F(ConfigStrictParse, ThePipelineEntryPointsReadTheirKeysFromTheTopLevelOfOn
         runTopRows(pipelineProbe(entry, "bypassOffset", "true", "false", XPE_OK, XPE_ERR_CALIB_NOT_LOADED));
     }
     // The numbers: `on` is a malformed number, so reading it is a refusal.
-    runTopRows(pipelineProbe("pipeline", "detectorTempC", "\"abc\"", "25.5", XPE_ERR_CONFIG_INVALID, XPE_OK));
     runTopRows(pipelineProbe("pipeline", "binningMode", "\"x\"", "1", XPE_ERR_CONFIG_INVALID, XPE_OK));
     // Keys only a LATER stage reads (the nonlinearity stage): a duplicate among them fails the call before any stage runs.
     for (const char* key : {"panel.linear", "panel.nonlinearity_mode", "panel.target_platform", "panel.nonlin_poly_c0",

@@ -16,8 +16,6 @@ extern "C" XPE_API XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height
 extern "C" XPE_API XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img,
     const XpeImageMetadata* meta);
 extern "C" XPE_API void xpe_ghost_destroy(void* handle);
-extern "C" XPE_API XpeErrorCode xpe_temp_compensate(XpeImageBuffer* img,
-    float detectorTempC, const char* configJsonOrNull);
 extern "C" XPE_API XpeErrorCode xpe_nonlinearity_correct(XpeImageBuffer* img,
     const char* configJsonOrNull);
 extern "C" XPE_API XpeErrorCode xpe_binning_correct(XpeImageBuffer* img,
@@ -106,9 +104,6 @@ TEST(Integration, UncalibratedPipelineComposes) {
     // Stage 1: Validate readout artifacts (new 4-arg API)
     EXPECT_EQ(XPE_OK, xpe_validate_readout_artifact(
         &buf.rawBuf, &buf.meta, &dropped, &nonuniform));
-
-    // Stage 2: Temperature compensation
-    ASSERT_EQ(XPE_OK, xpe_temp_compensate(&buf.rawBuf, 25.0f, nullptr));
 
     // Stage 3: Nonlinearity correction
     ASSERT_EQ(XPE_OK, xpe_nonlinearity_correct(&buf.rawBuf, nullptr));

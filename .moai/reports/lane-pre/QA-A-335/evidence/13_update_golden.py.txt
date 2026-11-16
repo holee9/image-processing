@@ -1,0 +1,33 @@
+# QA-A-335: rewrite the recorded digests of OutputUnchanged237b for the rows that changed ONLY because the temperature flag is gone.
+# Source of the new values: the failure messages of the masked-flag run on the NEW source (10_new.{normal,legacy}.txt), which are byte-identical
+# to the same run on the OLD source (11_old.*, compared in 12_*: 0 diff lines). legacy run -> golden(); normal run -> firstBypassGolden() when the
+# row is there, else golden() (the lookup order of the test, test_output_unchanged_237b.cpp:88-97).
+import re, sys
+src = sys.argv[1]; E = sys.argv[2]
+def fails(p):
+    t = open(p, encoding="utf-8", errors="replace").read()
+    return [(n, int(e), int(v)) for e, v, n in re.findall(r"expected\n\s+Which is: (\d+)\n\s+value\n\s+Which is: (\d+)\n(\S+): the output changed", t)]
+L = open(src, encoding="utf-8", newline="").read()
+nl = "\r\n" if "\r\n" in L else "\n"
+lines = L.split(nl)
+fb0 = next(i for i, s in enumerate(lines) if "const std::map<std::string, uint64_t>& firstBypassGolden() {" in s)
+fb1 = next(i for i in range(fb0, len(lines)) if lines[i].startswith("}"))
+g0 = next(i for i, s in enumerate(lines) if "std::map<std::string, uint64_t>& golden() {" in s)
+def setrow(lo, hi, name, old, new):
+    key = '{"%s", 0x' % name
+    hits = [i for i in range(lo, hi) if key in lines[i]]
+    assert len(hits) == 1, (name, lo, hits)
+    i = hits[0]; m = re.search(r'0x([0-9a-f]+)ull', lines[i]); assert int(m.group(1), 16) == old, (name, hex(old), m.group(0))
+    lines[i] = lines[i].replace(m.group(0), "0x%016xull" % new); return i
+done = []
+for n, e, v in fails(E + "/10_new.legacy.txt"): done.append(("legacy", n, setrow(g0, len(lines), n, e, v)))
+for n, e, v in fails(E + "/10_new.normal.txt"):
+    in_fb = any(('{"%s", 0x' % n) in lines[i] for i in range(fb0, fb1))
+    if in_fb: done.append(("normal/firstBypass", n, setrow(fb0, fb1, n, e, v)))
+    else:
+        i = next(i for i in range(g0, len(lines)) if ('{"%s", 0x' % n) in lines[i])
+        assert int(re.search(r'0x([0-9a-f]+)ull', lines[i]).group(1), 16) == v, ("normal row in golden must already equal the legacy value", n)
+        done.append(("normal/golden(same as legacy)", n, i))
+open(src, "w", encoding="utf-8", newline="").write(nl.join(lines))
+for d in done: print(*d)
+print("rows", len(done))

@@ -930,29 +930,11 @@ XPE_API XpeErrorCode xpe_ghost_reset(void* handle);
 XPE_API void xpe_ghost_destroy(void* handle);
 
 /* =============================================================================
- * Phase 7: Temperature, Nonlinearity, and Binning Correction
- * SWU-1.6: Temperature Compensation (PRE-07)
+ * Phase 7: Nonlinearity and Binning Correction
  * SWU-1.7: Nonlinearity Correction (PRE-08)
  * SWU-1.8: Binning Correction (PRE-09)
+ * (The temperature compensation of SWU-1.6 was removed by user decision, QA-A-335.)
  * ============================================================================ */
-
-/**
- * @brief Adjust pixel values for dark current temperature dependence
- *
- * REQ-P1A-005: Apply temperature-dependent dark current scaling
- * REQ-P1A-081: NaN -> use 25.0C fallback
- * REQ-P1A-081: Temp out of [-20, +60] range -> XPE_ERR_INVALID_INPUT
- * Model: I_dark(T) = I_0 * exp(-E_g / (2 * k_B * T))
- *
- * @param img [in/out] Image to correct (uint16 format)
- * @param detectorTempC Detector temperature in Celsius; NaN -> use 25.0C fallback
- * @param configJsonOrNull Optional calibration coefficient override JSON
- * @return XPE_OK on success
- *         XPE_ERR_INVALID_INPUT if NULL img or temp out of range
- */
-XPE_API XpeErrorCode xpe_temp_compensate(XpeImageBuffer* img,
-                                          float detectorTempC,
-                                          const char* configJsonOrNull);
 
 /**
  * @brief Apply piecewise linear or polynomial correction to linearize detector response
@@ -1098,7 +1080,7 @@ XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* image,
  * @param ghostHandle Ghost corrector handle (NULL = skip ghost correction). A handle without calibrated lag
  *        parameters (see xpe_ghost_create) passes the frame through: the output is still float32 (the format depends
  *        on the handle being given), but XPE_FLAG_GHOST_CORRECTED is not set (QA-A-226)
- * @param configJsonOrNull Pipeline configuration JSON (bypass flags, temperature, etc.), NUL-terminated.
+ * @param configJsonOrNull Pipeline configuration JSON (bypass flags, binning, etc.), NUL-terminated.
  *        Reading rule (every configuration text of this module -- this one, xpe_ghost_create's, the nonlinearity
  *        stage's, the offset generation's): the text is ONE valid JSON object and its keys are read from the TOP
  *        LEVEL. A key that appears only inside a nested object or array is not given (the default applies); a
@@ -1119,7 +1101,7 @@ XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* image,
  *        closing braces were doubled, is accepted after a repair with a warning alert (xcal_format.h).
  *
  *        Two ways a key's value is read, and they differ on purpose. (1) A STRING-OR-TOKEN key -- the bypass flags,
- *        detectorTempC, binningMode, the ghost keys (tier, alpha1, ...), panel.linear, panel.nonlinearity_mode,
+ *        binningMode, the ghost keys (tier, alpha1, ...), panel.linear, panel.nonlinearity_mode,
  *        panel.target_platform, method -- accepts a JSON string or a bare token, and its text is then converted
  *        strictly (notation as below: "25.5" and 25.5 are both 25.5). (2) A NUMBER key -- the polynomial
  *        coefficients and panel.adc_max, the offset generation's sigma / max_iter / lower_percentile /
@@ -1129,8 +1111,8 @@ XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* image,
  *        read as a number by strtod or silently ignored; it is now refused (QA-A-209b).
  * @return XPE_OK on success
  *         XPE_ERR_CONFIG_INVALID if the configuration is not one valid JSON object, a top-level key is given
- *                  twice, or a numeric value in the configuration (detectorTempC,
- *                  binningMode) is not one finite number in range -- "abc", "1e999", "2x" -- nothing
+ *                  twice, or a numeric value in the configuration
+ *                  (binningMode) is not one finite number in range -- "abc", "1e999", "2x" -- nothing
  *                  is loaded and no image or metadata is touched (the configuration is read first).
  *                  Notation of a configuration number: optional leading white space, an optional single
  *                  '+' (not followed by another sign), then a decimal number that fills the rest of the
@@ -1178,8 +1160,8 @@ XPE_API XpeErrorCode xpe_preprocess_pipeline(XpeImageBuffer* img,
  * @param configJsonOrNull Pipeline configuration JSON (reading rule: see xpe_preprocess_pipeline -- one valid JSON
  *        object, top-level keys, a key given twice or a malformed text is XPE_ERR_CONFIG_INVALID)
  * @return XPE_OK on success
- *         XPE_ERR_CONFIG_INVALID if a numeric value in the configuration (detectorTempC,
- *                  binningMode) is not one finite number in range -- "abc", "1e999", "2x" -- no image or metadata is touched (the configuration is read first)
+ *         XPE_ERR_CONFIG_INVALID if a numeric value in the configuration
+ *                  (binningMode) is not one finite number in range -- "abc", "1e999", "2x" -- no image or metadata is touched (the configuration is read first)
  *         XPE_ERR_BUFFER_TOO_SMALL, XPE_ERR_INVALID_INPUT for the size and dimension rules of
  *                  xpe_preprocess_pipeline() (see its @p img)
  *         XPE_ERR_OUT_OF_MEMORY if an allocation fails (image untouched, metadata as it was)

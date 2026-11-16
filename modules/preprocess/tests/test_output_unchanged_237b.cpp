@@ -124,33 +124,33 @@ class LegacyGhostFingerprintEnvironment : public ::testing::Environment {
 // The original golden() map below is retained verbatim and replayed by the separate legacy CTest job.
 const std::map<std::string, uint64_t>& firstBypassGolden() {
     static const std::map<std::string, uint64_t> values{
-        {"pipeline/default/203x157/tier1", 0xd9a654f43e2ec788ull},
-        {"pipeline/default/203x157/tier2", 0x66a058ea995a4f59ull},
-        {"pipeline/default/203x157/tier3", 0x99996c866a9375a9ull},
-        {"pipeline/default/256x192/tier1", 0x25fab120ebece492ull},
-        {"pipeline/default/256x192/tier2", 0x0f9f6e7025ac4453ull},
-        {"pipeline/default/256x192/tier3", 0x9c8f61f0913d3a0eull},
+        {"pipeline/default/203x157/tier1", 0xd45158eccfea3948ull},
+        {"pipeline/default/203x157/tier2", 0xc77183fce8c30c59ull},
+        {"pipeline/default/203x157/tier3", 0x15f2adc026929129ull},
+        {"pipeline/default/256x192/tier1", 0xe1244fa20c2c5112ull},
+        {"pipeline/default/256x192/tier2", 0x7baa3bc26bb1b153ull},
+        {"pipeline/default/256x192/tier3", 0x14d602389bf1b44eull},
         {"pipeline/combo/temp_off", 0x6a431839157f49c7ull},
-        {"pipeline/combo/offset_off", 0x8ec2b22ed1b7eee7ull},
-        {"pipeline/combo/nonlin_off", 0x3b545db05d1af7e7ull},
+        {"pipeline/combo/offset_off", 0xb81a87b89e1fc2c7ull},
+        {"pipeline/combo/nonlin_off", 0x6a431839157f49c7ull},
         {"pipeline/combo/temp_offset_nonlin_off", 0xb81a87b89e1fc2c7ull},
-        {"pipeline/combo/gain_off", 0xeaf4d816c5ffc8feull},
-        {"pipeline/combo/defect_off", 0x4123cefec05f8119ull},
-        {"pipeline/combo/binning2", 0x7ad915314edaa657ull},
-        {"pipeline/combo/gain_defect_off", 0x1cfe4ad9441131ecull},
+        {"pipeline/combo/gain_off", 0x7a0bbf5129b78f5eull},
+        {"pipeline/combo/defect_off", 0xcdf4c9ae12368d39ull},
+        {"pipeline/combo/binning2", 0x7e084f0bbc2aa8f7ull},
+        {"pipeline/combo/gain_defect_off", 0xea776aae5434b00cull},
         {"pipeline/float_input/tier1", 0x986b58099bf1c9a6ull},
         {"pipeline/float_input/tier3", 0xad4802f4ce76c8c6ull},
         {"pipeline/float_input/failed_frame/tier2", 0x1da83b52cfb677d9ull},
-        {"pipeline/poly_gain/tier2", 0x29271ea2cd79c4b5ull},
-        {"pipeline/gain_classified/203x157/tier1", 0x9b437aeaafd0996aull},
-        {"pipeline/gain_classified/203x157/tier2", 0x1b0895393e0270d5ull},
-        {"pipeline/gain_classified/203x157/tier3", 0x61c515f4cd03dcc0ull},
-        {"pipeline/gain_classified/256x192/tier1", 0xe417aaa5daa7f29aull},
-        {"pipeline/gain_classified/256x192/tier2", 0xc28760fa86cfc043ull},
-        {"pipeline/gain_classified/256x192/tier3", 0x4de2e28cb38b06d7ull},
-        {"pipeline/slow_route_ok/203x157/tier3_beta1e33", 0xccd74011fcb890efull},
-        {"pipeline/slow_route_ok/256x192/tier3_beta1e33", 0xf205ed9467bd2da4ull},
-        {"pipeline/slow_route_failing/203x157/tier3_beta1e36", 0x4514a77519d5f002ull},
+        {"pipeline/poly_gain/tier2", 0x93b4045879e0ffd5ull},
+        {"pipeline/gain_classified/203x157/tier1", 0xff8daf9376c653aaull},
+        {"pipeline/gain_classified/203x157/tier2", 0x5302861288cbe215ull},
+        {"pipeline/gain_classified/203x157/tier3", 0x58b2a071e3c77d80ull},
+        {"pipeline/gain_classified/256x192/tier1", 0x17fbd2866ff98f5aull},
+        {"pipeline/gain_classified/256x192/tier2", 0xbf2cd9de95b58643ull},
+        {"pipeline/gain_classified/256x192/tier3", 0xd6c4279ff45dd357ull},
+        {"pipeline/slow_route_ok/203x157/tier3_beta1e33", 0x99046832bfed0defull},
+        {"pipeline/slow_route_ok/256x192/tier3_beta1e33", 0x1bf79f3fb5c979e4ull},
+        {"pipeline/slow_route_failing/203x157/tier3_beta1e36", 0x000a0f1a36f068c2ull},
         {"ghost/sequence/203x157/tier1", 0x48c3852181d25eedull},
         {"ghost/sequence/203x157/tier2", 0x218db8cf6641ef32ull},
         {"ghost/sequence/203x157/tier3", 0xd0e6b2fa55761b79ull},
@@ -289,7 +289,7 @@ PipelineRun runPipeline(Size sz, int tier, const char* cfg, int frames, bool gho
         out.digest = fnvValue(out.digest, static_cast<int>(out.rc));
         out.digest = fnvValue(out.digest, static_cast<uint32_t>(img.format));
         out.digest = fnv(out.digest, buf.data(), n * (img.format == XPE_PIXEL_FLOAT32 ? sizeof(float) : sizeof(uint16_t)));
-        out.digest = fnvValue(out.digest, meta.flags & ~XPE_FLAG_CORRECTION_BYPASSED);   // QA-A-241: the new bypass flag is asserted in test_a241_safety.cpp; the rest of the flags and every pixel keep their recorded digest
+        out.digest = fnvValue(out.digest, meta.flags & ~(XPE_FLAG_CORRECTION_BYPASSED | XPE_FLAG_TEMP_COMPENSATED));   // QA-A-241: the new bypass flag is asserted in test_a241_safety.cpp; QA-A-335: the temperature flag is never set any more (stage removed) -- 50 rows re-recorded after the masked digest was shown equal on the old and the new source; the rest of the flags and every pixel keep their recorded digest
     }
     if (ghost) {
         const GhostCorrectorHandle* gh = static_cast<const GhostCorrectorHandle*>(ghost);
@@ -385,7 +385,7 @@ uint64_t runFloatInput(int tier, bool failing) {
         h = fnvValue(h, static_cast<int>(rc));
         h = fnvValue(h, static_cast<uint32_t>(img.format));
         h = fnv(h, buf.data(), n * sizeof(float));
-        h = fnvValue(h, meta.flags & ~XPE_FLAG_CORRECTION_BYPASSED);   // QA-A-241: see above
+        h = fnvValue(h, meta.flags & ~(XPE_FLAG_CORRECTION_BYPASSED | XPE_FLAG_TEMP_COMPENSATED));   // QA-A-241, QA-A-335: see above
     }
     const GhostCorrectorHandle* gh = static_cast<const GhostCorrectorHandle*>(ghost);
     h = fnv(h, gh->hist1.data(), gh->hist1.size() * sizeof(float));
@@ -1057,28 +1057,28 @@ std::map<std::string, uint64_t>& golden() {
         {"ghost/sequence/256x192/tier1", 0xdfa89cd32f1f043bull},
         {"ghost/sequence/256x192/tier2", 0x758ce723ee750df3ull},
         {"ghost/sequence/256x192/tier3", 0xf16481ebea1ad8f0ull},
-        {"pipeline/combo/binning2", 0x74ec0d485930158eull},
-        {"pipeline/combo/defect_off", 0xeaefd9693cc887f4ull},
-        {"pipeline/combo/gain_binning_ghost_off", 0xd2c7c13340283354ull},
-        {"pipeline/combo/gain_defect_off", 0x799fdd09f465b68dull},
-        {"pipeline/combo/gain_off", 0x60ecccedf9d6ab47ull},
-        {"pipeline/combo/ghost_off", 0x88767eb8bc7d8abeull},
-        {"pipeline/combo/nonlin_off", 0xb3aca48d1b76d872ull},
-        {"pipeline/combo/offset_off", 0x621b0af5f9adfa6aull},
+        {"pipeline/combo/binning2", 0xe9ef2565e107bb2eull},
+        {"pipeline/combo/defect_off", 0x82563a5b36585694ull},
+        {"pipeline/combo/gain_binning_ghost_off", 0x3aacd5aa0be80034ull},
+        {"pipeline/combo/gain_defect_off", 0xd99799bec1baecedull},
+        {"pipeline/combo/gain_off", 0xa64a14a3c2e555a7ull},
+        {"pipeline/combo/ghost_off", 0x6652a0fd21c88d1eull},
+        {"pipeline/combo/nonlin_off", 0x3230d95ce318e312ull},
+        {"pipeline/combo/offset_off", 0x0680df6cecb33d0aull},
         {"pipeline/combo/temp_off", 0x3230d95ce318e312ull},
         {"pipeline/combo/temp_offset_nonlin_off", 0x0680df6cecb33d0aull},
-        {"pipeline/combo/uint16_out", 0xf593cb0e7bd53415ull},
-        {"pipeline/default/203x157/tier1", 0x5937a758a6ed1341ull},
-        {"pipeline/default/203x157/tier2", 0x1e76a035b3cedc88ull},
-        {"pipeline/default/203x157/tier3", 0xf224ca30501e998eull},
-        {"pipeline/default/256x192/tier1", 0xa75c9d9e8247a047ull},
-        {"pipeline/default/256x192/tier2", 0x77cb58f9c64c6a7aull},
-        {"pipeline/default/256x192/tier3", 0x9dafa625dc1ba994ull},
+        {"pipeline/combo/uint16_out", 0xdb5f4d72aadd1075ull},
+        {"pipeline/default/203x157/tier1", 0x02143fe7b6cc62c1ull},
+        {"pipeline/default/203x157/tier2", 0xc2996c554e92a808ull},
+        {"pipeline/default/203x157/tier3", 0x8aa1b87cec7aab4eull},
+        {"pipeline/default/256x192/tier1", 0xc40a1e70cb5e2907ull},
+        {"pipeline/default/256x192/tier2", 0x11634dc99f8bdcbaull},
+        {"pipeline/default/256x192/tier3", 0x4a2b7ba7c7458314ull},
         // recorded on 416c3e3d (before the point-wise stages were merged, QA-A-237c): the polynomial gain and the ghost scratch route through the pipeline
-        {"pipeline/poly_gain/tier2", 0x794cad8c2ee0dc20ull},
-        {"pipeline/slow_route_failing/203x157/tier3_beta1e36", 0xf9189e72c1ffbc18ull},
-        {"pipeline/slow_route_ok/203x157/tier3_beta1e33", 0xdf9b1db6da540934ull},
-        {"pipeline/slow_route_ok/256x192/tier3_beta1e33", 0xeec4a5ac55567cceull},
+        {"pipeline/poly_gain/tier2", 0x791ae73f7ecd6200ull},
+        {"pipeline/slow_route_failing/203x157/tier3_beta1e36", 0x6f18caa694d5af98ull},
+        {"pipeline/slow_route_ok/203x157/tier3_beta1e33", 0x1fdb870bb919cd34ull},
+        {"pipeline/slow_route_ok/256x192/tier3_beta1e33", 0x08def2182f73348eull},
         // recorded on c9d32e59 (before the defect stage dropped its own processed plane, QA-A-237e)
         {"defect/shape0/17x5", 0xdde3d6d2c831fc8aull},
         {"defect/shape0/1x1", 0x79a8a8f0b1d6d159ull},
@@ -1154,12 +1154,12 @@ std::map<std::string, uint64_t>& golden() {
         {"defect/shape9/256x192", 0xea94eae748182770ull},
         {"defect/shape9/3x3", 0x8879d764ccb53a13ull},
         {"defect/shape9/64x64", 0x29b7a724d852a053ull},
-        {"pipeline/gain_classified/203x157/tier1", 0x72a6fbded50cba3full},
-        {"pipeline/gain_classified/203x157/tier2", 0x2746313d7704b09cull},
-        {"pipeline/gain_classified/203x157/tier3", 0x987573b6753f85c1ull},
-        {"pipeline/gain_classified/256x192/tier1", 0xca2d33d0452a704full},
-        {"pipeline/gain_classified/256x192/tier2", 0x923805cfeb68e1e2ull},
-        {"pipeline/gain_classified/256x192/tier3", 0xfd97f0b84a7b7e4dull},
+        {"pipeline/gain_classified/203x157/tier1", 0xe0b7e967455d27bfull},
+        {"pipeline/gain_classified/203x157/tier2", 0xd485a7b78af866dcull},
+        {"pipeline/gain_classified/203x157/tier3", 0xed782e87d939b0c1ull},
+        {"pipeline/gain_classified/256x192/tier1", 0x7034494fc9bcee0full},
+        {"pipeline/gain_classified/256x192/tier2", 0x1b625522fd97dbe2ull},
+        {"pipeline/gain_classified/256x192/tier3", 0x1440f66fc9b8ddcdull},
     };
     return g;
 }

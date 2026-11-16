@@ -37,7 +37,7 @@ void (*xpe_pipeline_after_stage_hook)(int) = nullptr;
 void (*xpe_pipeline_gain_frame_hook)(void*, size_t, bool) = nullptr;
 #endif
 // QA-A-237b (#245): the observation point after every stage, so a test can read the process's memory at each stage
-// boundary (0 readout, 1 temp, 2 offset, 3 nonlinearity, 4 gain, 5 binning, 6 defect, 7 ghost, 9 the final copy).
+// boundary (0 readout, 1 the working copy (the temperature stage, removed in QA-A-335), 2 offset, 3 nonlinearity, 4 gain, 5 binning, 6 defect, 7 ghost, 9 the final copy).
 // Test builds only: in the shipped library the macro expands to nothing.
 #ifdef XPE_CACHE_TEST_HOOKS
 #define XPE_STAGE_HOOK(n) do { if (xpe_pipeline_after_stage_hook) xpe_pipeline_after_stage_hook(n); } while (0)
@@ -58,7 +58,6 @@ namespace {
     // Pipeline configuration from JSON
     struct PipelineConfig {
         bool bypassReadout{false};
-        bool bypassTemp{false};
         bool bypassOffset{false};
         bool bypassNonlinearity{false};
 
@@ -70,7 +69,6 @@ namespace {
         bool bypassDefect{false};
         bool bypassGhost{false};
 
-        float detectorTempC{25.0f};
         int32_t binningMode{1};
 
         // QA-A-296 (Refs #278): the detector's saturation level, as a raw pixel value 1..65535, or "off". Neither given
@@ -101,7 +99,7 @@ namespace {
 
             std::string v;
             const struct { const char* key; bool* flag; } flags[] = {
-                {"bypassReadout", &cfg.bypassReadout},         {"bypassTemp", &cfg.bypassTemp},
+                {"bypassReadout", &cfg.bypassReadout},
                 {"bypassOffset", &cfg.bypassOffset},           {"bypassNonlinearity", &cfg.bypassNonlinearity},
                 {"bypassGain", &cfg.bypassGain},               {"bypassBinning", &cfg.bypassBinning},
                 {"bypassDefect", &cfg.bypassDefect},           {"bypassGhost", &cfg.bypassGhost},
@@ -109,10 +107,6 @@ namespace {
             for (const auto& f : flags) {
                 if (cfg.doc.getString(f.key, &v) && v == "true") *f.flag = true;
             }
-
-            // Parse temperature (a string or a bare number; an empty value is not given)
-            if (cfg.doc.getString("detectorTempC", &v) && !v.empty() && !xpe_strict::parse_float(v, &cfg.detectorTempC))
-                return XPE_ERR_CONFIG_INVALID;
 
             // Parse binning mode
             if (cfg.doc.getString("binningMode", &v) && !v.empty() && !xpe_strict::parse_int(v, &cfg.binningMode))
@@ -455,7 +449,7 @@ namespace {
         XPE_STAGE_HOOK(0);
 
         // QA-A-237c (#245, SRS-CALIB-PERF-002): ONE working buffer of the float frame's size for the whole chain from the
-        // temperature stage to the gain stage. The uint16 frame the point-wise stages (temperature, offset, nonlinearity) work on
+        // first point-wise stage to the gain stage. The uint16 frame the point-wise stages (offset, nonlinearity) work on
         // sits in its first half and each of them works on it in place (offset and nonlinearity read and write a pixel at the
         // same index); the gain stage then writes the float frame OVER it, from the last pixel to the first, so that no float
         // pixel is written before the uint16 pixels it overlaps have been read (xpe_gain_correct_in, output aliasing input).
@@ -472,30 +466,13 @@ namespace {
         uint16_t* const work16 = reinterpret_cast<uint16_t*>(work.get());
         float* const workF = reinterpret_cast<float*>(work.get());
 
-        // Stage 1: Temperature Compensation (PRE-07)
+        // Stage 1: the input of the point-wise stages. QA-A-335: the temperature stage that ran here is removed; what
+        // remains is exactly the path the former "bypassTemp":true took (no stage, no copy of its own).
         XpeImageBuffer stage1 = *img; // Start with input
         std::vector<uint16_t> stage1Data;
         if (widen) {
             stage1.data = work16;
             stage1.dataSize = inputBytes;
-        }
-
-        if (!cfg.bypassTemp) {
-            if (!widen) {
-                stage1Data.resize(pixelCount);
-                // The work buffer holds exactly inputBytes. This copied img->dataSize bytes, and a dataSize larger
-                // than the frame -- the size a caller must give for the float result of the gain stage to be
-                // written back -- overran it (#234).
-                std::memcpy(stage1Data.data(), img->data, inputBytes);
-
-                stage1.data = stage1Data.data();
-                stage1.dataSize = stage1Data.size() * sizeof(uint16_t);
-            }
-
-            result = xpe_temp_compensate(&stage1, cfg.detectorTempC, nullptr);
-            if (result != XPE_OK) return result;
-
-            if (meta) meta->flags |= XPE_FLAG_TEMP_COMPENSATED;
         }
         XPE_STAGE_HOOK(1);
 

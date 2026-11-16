@@ -19,7 +19,6 @@ set(XPE_PREPROCESS_SOURCES
     src/offset_correct.cpp       # SWU-1.1 REQ-P1A-010, REQ-P1A-021 (new 3-arg g_calib API)
     src/gain_correct.cpp         # SWU-1.2 REQ-P1A-011 (new 3-arg g_calib API); guards REQ-P1A-020, REQ-P1A-020a
     src/readout_validate.cpp     # SWU-1.9 REQ-P1A-041 (dropped columns, rows above 0.9 x full scale; no line-noise check)
-    src/temp_compensate.cpp      # SWU-1.6 REQ-P1A-080, REQ-P1A-081 (the flag, REQ-P1A-082, is set by the pipeline)
     src/nonlinearity_correct.cpp # SWU-1.7 SRS-CALIB-FUNC-006 / -006-EXT (SPEC-XPE-P1A has no nonlinearity requirement)
     src/binning_correct.cpp      # SWU-1.8 REQ-P1A-090, REQ-P1A-091
     src/defect_correct.cpp       # SWU-1.3 REQ-P1A-012 (new 3-arg g_calib API); runtime detection REQ-P1A-013 is in runtime_detection.cpp

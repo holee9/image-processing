@@ -1,0 +1,51 @@
+[0/1] Re-running CMake...
+-- MSVC Ninja include prefix bytes: c2fcb0ed3a20c6f7c7d420c6c4c0cf3a20
+-- Platform: x86-64, AVX2 enabled
+-- Build spdlog: 1.14.1
+-- Build type: RelWithDebInfo
+-- Using the multi-header code from D:/workspace-github/xpe-pre/build/ci-preprocess/_deps/nlohmann_json-src/include/
+-- {fmt} version: 11.0.2
+-- Build type: RelWithDebInfo
+-- Could NOT find GTest (missing: GTest_DIR)
+-- Orphan-source check: 0 unlisted sources under modules/*/src/
+-- Configuring done (1.1s)
+-- Generating done (0.2s)
+-- Build files have been written to: D:/workspace-github/xpe-pre/build/ci-preprocess
+[1/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\binning_correct.cpp.obj
+[2/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\offset_correct.cpp.obj
+[3/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\calibration_manager.cpp.obj
+[4/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\temp_compensate.cpp.obj
+[5/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\readout_validate.cpp.obj
+[6/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\nonlinearity_correct.cpp.obj
+[7/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calib_mode.cpp.obj
+[8/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\gain_correct.cpp.obj
+[9/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calib_check_expiry.cpp.obj
+[10/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\ghost_correct.cpp.obj
+[11/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\calib_expiry_check.cpp.obj
+[12/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_defect_gen.cpp.obj
+[13/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calibration.cpp.obj
+[14/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\runtime_detection.cpp.obj
+[15/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calib_load_offset.cpp.obj
+[16/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\calibration_cache.cpp.obj
+[17/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calib_load_gain.cpp.obj
+[18/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calib_load_defect_map.cpp.obj
+[19/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\pipeline.cpp.obj
+[20/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\preprocess.cpp.obj
+[21/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\tests\test_ghost_mix_compare.cpp.obj
+[22/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calib_generate_offset.cpp.obj
+[23/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calib_load_nonlin_lut.cpp.obj
+[24/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calib_generate_nonlin_lut.cpp.obj
+[25/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calib_save.cpp.obj
+[26/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calib_generate_offset_methods.cpp.obj
+[27/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\saturation.cpp.obj
+[28/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\defect_correct.cpp.obj
+[29/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_verify_metrics.cpp.obj
+[30/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calib_generate_gain.cpp.obj
+[31/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\defect_ext.cpp.obj
+[32/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\helpers.cpp.obj
+[33/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xcal_reader.cpp.obj
+[34/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\tests\test_zz_a237b_mem.cpp.obj
+[35/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\tests\test_output_unchanged_237b.cpp.obj
+[36/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_bpm_v2.cpp.obj
+[37/39] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\tests\test_oom_injection.cpp.obj
+[38/39] Linking CXX executable bin\xpe_preprocess_oom_tests.exe
