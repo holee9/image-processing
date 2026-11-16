@@ -1,4 +1,40 @@
-1차 조사 보고 — GUI-C-268, 수정 없는 D258 단독20P/0F/0S(로컬 실패0/20); CI 실패2건 원문 확인, 원인 미확정·제품 수정 없음·임시 계측 접근 승인 대기
+계측 관측·원복 완료 — GUI-C-268, D258 PASS/실패 미재현·원인 미확정; 계측 전체369=343P/2F/24S, 두 파일 원복 git diff0줄; 준비 누락2건은 원복 후 별도2P/0F 확인
+
+## 03:53 최종 사실 회수 / Claim
+
+승인된 두 파일 계측으로 필터 없는 전체 E2E를 실행했으나 D258 실패는 잡지 못했다. D258은 PASS이고 실제 세 footer 읽기 시각과 해당 GUI PID40576의 SetRender 시각을 연결했다. 첫 읽기 시작18.2134ms 뒤 최초 non-null render가 대입됐고19.8683ms 뒤 파생 속성 알림이 완료됐다. 첫 읽기는93.0699ms에 끝나 완료 문구를 반환했다. 즉 초기 읽기 호출과 render commit의 시간 겹침은 직접 관측했으나 **실패 회차가 아니므로 CI 실패 원인 확정으로 보고하지 않는다.** 근본 수정은 하지 않았다.
+
+## 최종 Evidence / Baseline-attribution
+
+- 계측 기준: dev/gui HEAD1071de9b + 승인 두 파일 임시 diff, Native 기준은 원본20회와 같은 카드267 staging. 03:12:42.4602025~03:48:12.9014657 KST, exit1, 전체369=343P/2F/24S, appAfter 빈 배열. D258 세 시험은 모두 PASS이며 Metrics→missing-map→geometry 순서였다. 전체를 CI와 동일한 하드웨어·실행물·prefix 조건이라고 주장하지 않는다.
+- 실패2개 A04/A06은 GUI만 빌드해 내부 SelfCheck/E2E runner의 GUI 복사본이 소스보다 오래됐다는 신선도 검사에서 막힌 레인 준비 누락이다. 원문 메시지를 `instrumented-summary.md`에 보존했다. 이 실패를 D258 실패로 세지 않는다. 전체 실패 결과를 삭제하거나 통과로 바꾸지 않는다.
+- 두 파일을 보존했던 원본 바이트로 복원했다. SHA256은 승인 절의 원본 두 값과 같고 `git diff -- <두 파일>` 출력0 bytes/0줄, clients/gui 전체 소스 diff 출력 없음이다(`instrumented-full/restoration.json`). 원복 전에 현재 계측 hash가 보존 manifest와 같은지도 확인해 다른 변경을 덮어쓰지 않았다.
+- 원복 후 GUI/SelfCheck/내부E2E/외부E2E 시험 프로젝트를 차례로 빌드했다. 모두 exit0/errors0, warnings22/1/0/7. 내부 runner의 실제 복사본도 새로 빌드한 상태다. 이어 `dotnet test clients/ImageProcTest.E2ETests -c Debug --no-build --no-restore --filter "FullyQualifiedName~AutomationReportBackendTests.A04_|FullyQualifiedName~AutomationReportBackendTests.A06_" ...`로 A04/A06만 별도 검증했다. 03:51:06.5534049~03:52:11.6066565, exit0, TRX total2/passed2/failed0/skip0, appAfter 빈 배열. 자식의 XPE_D258_TRACE_DIR가 제거됐음을 preflight로 확인했다. 이 결과는 전체 계측 실행의2실패를 대체하는 집계가 아니다.
+- 계측 실행의 임시 SelfCheck 폴더는17파일을 ZIP 보존하고 각 entry SHA256 일치 확인 뒤 해당 폴더만 비재귀 정리했다. `instrumented-full/A05-19304.zip` SHA256 `568FEFE66452877348C38422A36A7E3C406C5FDB42A29A76BC4DEC5F2C495CCC`. 원복·빌드·별도2시험·정리 원문은 카드 폴더에 보존했다.
+
+## 최종 Gaps / Residual-risk
+
+원본 단독20회는20P/0F/0S, 계측 전체에서 D258은1P이며 서로 다른 조건이라 빈도를 합치지 않는다. 계측 자체의 시간 측정·I/O·출력 비용과 로컬/CI 환경 차이가 남는다. 실제 실패 회차에서 VM 상태 전환·바인딩 반영·UIA 표현 중 어느 경계가 문제인지 직접 기록을 얻지 못했다. 원인을 확정하거나 버그 해결·main CI 초록을 주장하지 않는다. 계측 코드는 원복했고 커밋하지 않는다. 추가 제품 수정·대기·재시도·단언 변경 없이 사실 보고만 제출한다.
+
+---
+
+아래는 원본 조사·승인·실행의 경과 기록이다. 초기의 승인 대기/실행 중 표현은 당시 상태이며 현재 판정은 위 최종 절을 따른다.
+
+## 계측 전체 실행 착수
+
+승인된 두 파일만 임시 변경했다. 기존 Assert/Skip/Thread.Sleep/while 행을 원본과 비교해 동일함을 확인했다. GUI 빌드 exit0, errors0/warnings22, stderr0 bytes였다. 03:12:42.4602025 KST에 `dotnet test clients/ImageProcTest.E2ETests -c Debug --no-restore --logger "console;verbosity=detailed" --logger "trx;LogFileName=e2e.trx" --results-directory "D:\workspace-github\xpe-gui\.moai\reports\lane-gui\GUI-C-268\instrumented-full"`로 필터 없이 시작했다. 실행 helper PID18768. 시작/환경/소스 hash는 instrumented-full의 launch/preflight 자료에 보존한다. Native DLL은 원본 단독20회와 같은 카드267 staging이다. 계측 상태의 결과를 원본 빈도와 합치지 않는다.
+
+`XPE_D258_TRACE_DIR`은 helper 자식 프로세스에만 설정했다. VM은 SetRender 진입·대입 직후·알림 완료 QPC/UTC와 old/new render ID를 per-process TSV에 기록한다. 파일 쓰기는 기존 RefreshParametersStale 뒤에서만 한다. D258은 원래 Find(id).Name 전체 호출의 시작/종료를 저장하고 세 판정값 저장 뒤 D258_READ를 출력한다. D258_APP은 이때 기존 managed Application의 PID를 reflection으로 읽어 GUI trace를 연결한다. 추가 UIA 조회·단언·대기·재시도는 없다. 진단 쓰기 실패는 stderr에 명시하며 빈도 변화 등 관측 교란 가능성은 한계로 남긴다. 계측 patch/source hash는 instrumented-full에 보존했고 아직 stage/commit하지 않았다.
+
+## 03:05 계측 승인 수신
+
+`20261117-0305-gui.md`에서 리더가 아래 두 파일 계측안을 승인했다. 대기·재시도·단언은 변경하지 않는다. 단독 원본 반복은 보고 시점20회까지 모두 통과해 완료됐으며15회 중간 집계와 구분한다. 승인 지시에 따라 계측 상태에서는 전체 E2E 문맥을 우선 실행한다. 측정 뒤 계측 두 파일을 시작 전 바이트로 복원하고 git diff0줄을 기록한다. 계측 코드는 커밋하지 않는다.
+
+원본 바이트는 `instrumentation-before/viewmodel.original`, `scenario.original`에 보존했다. SHA256은 각각 `03aeb70dd655cd97a4dd5bcfdc93003c45c810d6748cc88005836859c1b5f46a`, `b5ed5721384e9bf080cee4366706ad873a3f2f320a7b33ec26492fbd149f4454`다. 임시 관측용 환경은 새 helper 자식 프로세스에만 적용하며 원본20회 빈도와 합치지 않는다.
+
+## 조사 기록 커밋
+
+dev/gui에서 report.md와 baseline-summary.md 두 경로만 커밋했다. 직접 부모는 `60a88521de73f401f49e9158dc541197bda24799`, 일반 git commit exit0·stderr 없음이었다. `git diff --cached --check`는 exit0·출력 없음, 커밋 후 index는 비어 있었다. 소스 수정·main merge·push·훅 우회는 하지 않았다. 원문 raw/TRX/JSON/실행 도우미는 로컬 카드 폴더에 보존했다. 첫 줄 SHA는 커밋 후 보고서 갱신이며 amend하지 않는다. 카드 종료나 main CI 초록을 의미하는 커밋은 아니다.
 
 ## Claim
 
