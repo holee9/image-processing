@@ -1,0 +1,2 @@
+../../QA-A-313/evidence/51_lines_v2.tsv.txt | file records by kind: {'line': 76} | line_masks counts: {'line': 76, 'candidate': 0} | masked map rows 277 cols 278
+../../QA-A-313/evidence/52_lines_clean_v2.tsv.txt | file records by kind: {} | line_masks counts: {'line': 0, 'candidate': 0} | masked map rows 0 cols 0
