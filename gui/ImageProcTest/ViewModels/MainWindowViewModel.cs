@@ -1023,7 +1023,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private static string FormatCalibrationModes(AppSettings s) =>
         $"Offset={s.OffsetCorrectionMode}, Gain={s.GainCorrectionMode}, Defect={s.DefectCorrectionMode}, " +
         $"Ghost={s.GhostCorrectionMode}, Temp={s.TemperatureCompensationMode}, " +
-        $"Nonlinearity={s.NonlinearityCorrectionMode}, Binning={s.BinningCorrectionMode}";
+        $"Binning={s.BinningCorrectionMode}";
 
     /// <summary>
     /// GUI-C-233k (Codex #179): the HUD's "Calib:" line says what the render's chain ACTUALLY RAN, taken from the preprocess stage's own outcome - not from how many calibration modes the settings
@@ -1484,7 +1484,6 @@ public sealed class MainWindowViewModel : ObservableObject
         || !string.Equals(a.DefectCorrectionMode, b.DefectCorrectionMode, StringComparison.Ordinal)
         || !string.Equals(a.GhostCorrectionMode, b.GhostCorrectionMode, StringComparison.Ordinal)
         || !string.Equals(a.TemperatureCompensationMode, b.TemperatureCompensationMode, StringComparison.Ordinal)
-        || !string.Equals(a.NonlinearityCorrectionMode, b.NonlinearityCorrectionMode, StringComparison.Ordinal)
         || !string.Equals(a.BinningCorrectionMode, b.BinningCorrectionMode, StringComparison.Ordinal);
 
     /// <summary>
@@ -2748,7 +2747,6 @@ public sealed class MainWindowViewModel : ObservableObject
                 defect = RenderedInputs?.DefectCorrectionMode,
                 ghost = RenderedInputs?.GhostCorrectionMode,
                 temperature = RenderedInputs?.TemperatureCompensationMode,
-                nonlinearity = RenderedInputs?.NonlinearityCorrectionMode,
                 binning = RenderedInputs?.BinningCorrectionMode,
                 requested = new
                 {
@@ -2758,7 +2756,6 @@ public sealed class MainWindowViewModel : ObservableObject
                     defect = Settings.DefectCorrectionMode,
                     ghost = Settings.GhostCorrectionMode,
                     temperature = Settings.TemperatureCompensationMode,
-                    nonlinearity = Settings.NonlinearityCorrectionMode,
                     binning = Settings.BinningCorrectionMode
                 }
             },
@@ -3770,7 +3767,6 @@ public sealed class MainWindowViewModel : ObservableObject
             or nameof(AppSettings.DefectCorrectionMode)
             or nameof(AppSettings.GhostCorrectionMode)
             or nameof(AppSettings.TemperatureCompensationMode)
-            or nameof(AppSettings.NonlinearityCorrectionMode)
             or nameof(AppSettings.BinningCorrectionMode))
         {
             OnPropertyChanged(nameof(CalibrationEvaluationSummary));

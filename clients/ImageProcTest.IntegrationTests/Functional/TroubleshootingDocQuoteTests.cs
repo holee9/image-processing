@@ -68,7 +68,7 @@ public sealed class TroubleshootingDocQuoteTests
     {
         Assert.True(Matches("<label> did not run: '<exe>' could not be started",
             Normalize("$\"{label} did not run: '{exePath}' could not be started ({reason}).\"")));
-        Assert.True(Matches("<N> pixel(s) fell outside", Normalize("\"%zu pixel(s) fell outside the gain\"")));
+        Assert.True(Matches("<N> pixel(s) failed validation", Normalize("\"%zu pixel(s) failed validation\"")));
 
         // The literal text around a placeholder still has to be there, and a placeholder never reaches into the next line.
         Assert.False(Matches("<label> did not run:", Normalize("$\"{label} could not run:\"")));
@@ -79,19 +79,19 @@ public sealed class TroubleshootingDocQuoteTests
     public void StringLiteralsWrittenAsSeveralPieces_AreJoinedBeforeTheLookup()
     {
         // C++ adjacent literals and C# concatenation, both as the sources really write long messages.
-        var cpp = Normalize("snprintf(msg, n,\n    \"gain polynomial carries an inverted dose range \"\n    \"[%.1f, %.1f]: the clamp is not applied\",\n    lo, hi);");
+        var cpp = Normalize("snprintf(msg, n,\n    \"calibration carries an invalid range \"\n    \"[%.1f, %.1f]: the file is rejected\",\n    lo, hi);");
         var cs = Normalize("var m = \"Your saved settings could not be read, \" +\n        $\"The original file was kept at '{path}'.\";");
 
-        Assert.True(Matches("carries an inverted dose range [<a>, <b>]: the clamp is not applied", cpp));
+        Assert.True(Matches("carries an invalid range [<a>, <b>]: the file is rejected", cpp));
         Assert.True(Matches("could not be read, The original file was kept at '<path>'.", cs));
     }
 
     [Fact]
     public void AnEscapedQuoteInTheSource_IsCompared_AsTheQuoteTheOperatorSees()
     {
-        var source = Normalize("\"panel.linear is not \\\"false\\\", so the frame passed through\"");
+        var source = Normalize("\"mode is not \\\"default\\\", so the frame passed through\"");
 
-        Assert.True(Matches("panel.linear is not \"false\", so the frame passed through", source));
+        Assert.True(Matches("mode is not \"default\", so the frame passed through", source));
     }
 
     [Fact]

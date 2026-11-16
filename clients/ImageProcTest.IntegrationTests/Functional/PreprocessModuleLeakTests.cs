@@ -30,12 +30,6 @@ public sealed class PreprocessModuleLeakTests
         ("DataSizeContractTests.LogTransform_ExactDataSize_IsAccepted", () => new ImageProcTest.IntegrationTests.Functional.DataSizeContractTests().LogTransform_ExactDataSize_IsAccepted()),
         ("DataSizeContractTests.LogTransform_ShortDataSize_ReturnsInvalidInput", () => new ImageProcTest.IntegrationTests.Functional.DataSizeContractTests().LogTransform_ShortDataSize_ReturnsInvalidInput()),
         ("DataSizeContractTests.LogTransform_ZeroDataSize_IsAccepted", () => new ImageProcTest.IntegrationTests.Functional.DataSizeContractTests().LogTransform_ZeroDataSize_IsAccepted()),
-        ("GainPolyClampAlertTests.EveryPixelOutsideTheRange_RaisesTheAllVariant_CarryingTheMisloadHint", () => new ImageProcTest.IntegrationTests.P1AReady.GainPolyClampAlertTests(new NullOutput()).EveryPixelOutsideTheRange_RaisesTheAllVariant_CarryingTheMisloadHint()),
-        ("GainPolyClampAlertTests.SomePixelsOutsideTheRange_RaiseThePartialVariant_WithoutTheHint", () => new ImageProcTest.IntegrationTests.P1AReady.GainPolyClampAlertTests(new NullOutput()).SomePixelsOutsideTheRange_RaiseThePartialVariant_WithoutTheHint()),
-        ("GainPolyClampAlertTests.AScalarGainFile_RaisesNoClampAlert", () => new ImageProcTest.IntegrationTests.P1AReady.GainPolyClampAlertTests(new NullOutput()).AScalarGainFile_RaisesNoClampAlert()),
-        ("NonlinearityStageWiringTests.WithoutALut_TheStageRunsAndLeavesTheFrameByteIdentical", () => new ImageProcTest.IntegrationTests.P1AReady.NonlinearityStageWiringTests().WithoutALut_TheStageRunsAndLeavesTheFrameByteIdentical()),
-        ("NonlinearityStageWiringTests.ANonLinearPanelWithoutALut_IsRefused", () => new ImageProcTest.IntegrationTests.P1AReady.NonlinearityStageWiringTests().ANonLinearPanelWithoutALut_IsRefused()),
-        ("NonlinearityStageWiringTests.TheGuiRunnerReachesTheStages_ThroughThePipelineFunction_NotByCallingThemItself", () => new ImageProcTest.IntegrationTests.P1AReady.NonlinearityStageWiringTests().TheGuiRunnerReachesTheStages_ThroughThePipelineFunction_NotByCallingThemItself()),
         ("PreprocessCorrectionBoundaryTests.Control_AWriteIntoEitherMargin_IsDetected", () => new ImageProcTest.IntegrationTests.P1AReady.PreprocessCorrectionBoundaryTests().Control_AWriteIntoEitherMargin_IsDetected()),
         ("PreprocessCorrectionBoundaryTests.Offset_WritesOnlyItsOutputBuffer_AndLeavesItsInputAlone", () => new ImageProcTest.IntegrationTests.P1AReady.PreprocessCorrectionBoundaryTests().Offset_WritesOnlyItsOutputBuffer_AndLeavesItsInputAlone()),
         ("PreprocessCorrectionBoundaryTests.Gain_WritesOnlyItsOutputBuffer_AndLeavesItsInputAlone", () => new ImageProcTest.IntegrationTests.P1AReady.PreprocessCorrectionBoundaryTests().Gain_WritesOnlyItsOutputBuffer_AndLeavesItsInputAlone()),
@@ -60,8 +54,6 @@ public sealed class PreprocessModuleLeakTests
     private static readonly (string File, string[]? Prefixes)[] CoveredFiles =
     [
         ("Functional/DataSizeContractTests.cs", null),
-        ("P1AReady/GainPolyClampAlertTests.cs", null),
-        ("P1AReady/NonlinearityStageWiringTests.cs", null),
         ("P1AReady/PreprocessCorrectionBoundaryTests.cs", null),
         ("P1AReady/PreprocessCorrectionChainSmokeTests.cs", null),
         ("P1AReady/PreprocessHandshakeTests.cs", null),
@@ -79,7 +71,7 @@ public sealed class PreprocessModuleLeakTests
 
     private static readonly Regex TestMethod = new(@"\[(?:SkippableFact|Fact)[^\]]*\]\s*(?:\[[^\]]*\]\s*)*public\s+(?:async\s+Task|Task|void)\s+(\w+)\s*\(\s*\)");
 
-    /// <summary>GainPolyClampAlertTests takes xUnit's output helper; nothing here reads what it writes.</summary>
+    /// <summary>The fingerprint probe takes an output helper; the sweep does not inspect its text.</summary>
     private sealed class NullOutput : Xunit.Abstractions.ITestOutputHelper
     {
         public void WriteLine(string message) { }

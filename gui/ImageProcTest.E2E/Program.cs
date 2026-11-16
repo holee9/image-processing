@@ -381,12 +381,10 @@ static string RunWpfE2EWithSettings(AppSettingsService settingsService)
         var fixtureSetLabel = FindVisualChildByPredicate<TextBlock>(studyQueue!, tb => tb.Text == "FIXTURE SET");
         Assert(fixtureSetLabel is not null, "StudyQueue should display FIXTURE SET footer label.");
 
-        // --- AnalysisPanel: mode controls for all 7 calibration stages (Temperature, Nonlinearity, Binning added) ---
+        // --- AnalysisPanel: mode controls for the remaining calibration stages ---
         // These are SETTINGS controls. The preprocess call itself runs only offset, gain and defect (GuiPreprocessRunner.ExecutedStages); what the HUD says ran is checked below.
         var tempRadio = FindVisualChildByPredicate<RadioButton>(analysisPanel!, rb => rb.GroupName == "Temperature");
         Assert(tempRadio is not null, "AnalysisPanel should have Temperature calibration stage controls.");
-        var nonlinearityRadio = FindVisualChildByPredicate<RadioButton>(analysisPanel!, rb => rb.GroupName == "Nonlinearity");
-        Assert(nonlinearityRadio is not null, "AnalysisPanel should have Nonlinearity calibration stage controls.");
         var binningRadio = FindVisualChildByPredicate<RadioButton>(analysisPanel!, rb => rb.GroupName == "Binning");
         Assert(binningRadio is not null, "AnalysisPanel should have Binning calibration stage controls.");
 

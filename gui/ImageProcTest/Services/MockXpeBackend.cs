@@ -192,7 +192,7 @@ public sealed class MockXpeBackend : IXpeBackend
         return preview;
     }
 
-    // @MX:NOTE: [AUTO] 6-stage mock calibration applied in fixed order: Offset → Temperature → Nonlinearity → Gain → Binning → Defect → Ghost; stage order encodes physical dependencies
+    // @MX:NOTE: [AUTO] Mock calibration order: Offset → Temperature → Gain → Binning → Defect → Ghost; stage order encodes physical dependencies
     private static double[] CreateMockCalibrationPixels(LoadedImageFrame rawFrame, ushort[] displayInput, AppSettings settings)
     {
         var count = checked(rawFrame.Width * rawFrame.Height);
@@ -220,15 +220,6 @@ public sealed class MockXpeBackend : IXpeBackend
                 {
                     pixels[rowStart + x] = Math.Max(0.0, pixels[rowStart + x] - drift);
                 }
-            }
-        }
-
-        if (ShouldApplyStage(settings.NonlinearityCorrectionMode, autoApplies: false))
-        {
-            for (var i = 0; i < count; i++)
-            {
-                var normalized = Math.Clamp(pixels[i] / ushort.MaxValue, 0.0, 1.0);
-                pixels[i] = Math.Pow(normalized, 1.015) * ushort.MaxValue;
             }
         }
 
@@ -301,7 +292,6 @@ public sealed class MockXpeBackend : IXpeBackend
             ResolveStage("Defect", settings.DefectCorrectionMode, !string.IsNullOrWhiteSpace(settings.DefectCalibrationDirectory)),
             ResolveStage("Ghost", settings.GhostCorrectionMode, false),
             ResolveStage("Temp", settings.TemperatureCompensationMode, false),
-            ResolveStage("Nonlinearity", settings.NonlinearityCorrectionMode, false),
             ResolveStage("Binning", settings.BinningCorrectionMode, false)
         });
     }
