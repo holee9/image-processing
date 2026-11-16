@@ -1,0 +1,11 @@
+n 9437184 tau 4.4839
+n 9406485 tau 4.4833
+n 9394225 tau 4.4831
+tau now 4.4833 tau proposed (cost-2 hypothesis) 8.9666
+exact sum-only tail at c=2 with tau proposed: 1.0630963638383447e-07
+cost | P(sum) now | P(rule) now | P(sum) prop | P(rule) prop
+1.0 0.0 0.0 0.0 0.0
+1.43 0.00011 0.0001025 0.0 0.0
+1.67 0.0008225 0.00076 0.0 0.0
+2.0 0.0064425 0.00608 0.0 0.0
+3.0 0.11019 0.1048975 0.00023 0.0002275
