@@ -1,0 +1,31 @@
+# QA-A-338: s050 (25L29I2 2026-03-09 AED) dark levels. ROI = --bpm-margins 6,2,1,1 (x 6..3070, y 2..3070).
+# offset map read from the regenerated offset.xcal (sha256 printed; must equal QA-A-337 s050 bf384bcf...). Payload = last 3072*3072*4 bytes, float32.
+import sys, hashlib, numpy as np
+B, OFF = sys.argv[1], sys.argv[2]
+roi = (slice(2, 3071), slice(6, 3071))
+rd = lambda p: np.fromfile(p, dtype=np.uint16).reshape(3072, 3072).astype(np.float64)
+raw = open(OFF, "rb").read(); print("offset.xcal sha256", hashlib.sha256(raw).hexdigest(), "bytes", len(raw))
+off = np.frombuffer(raw[-3072 * 3072 * 4:], dtype=np.float32).reshape(3072, 3072).astype(np.float64)
+print("offset map ROI mean %.3f" % off[roi].mean())
+used = ["%02d" % k for k in range(2, 8)]
+def table(folder, tag):
+    print("== %s (%s)" % (tag, folder))
+    ms = {}
+    for k in range(10):
+        f = "%s/Dark_%02d.raw" % (folder, k)
+        try: a = rd(f)
+        except Exception as e: print("Dark_%02d unreadable %s" % (k, e)); continue
+        ms[k] = a[roi].mean()
+        print("Dark_%02d ROI mean %.3f  minus offset-map mean %+.3f" % (k, ms[k], ms[k] - off[roi].mean()))
+    return ms
+ms = table(B + "/AED", "AED (s050)")
+mu = np.mean([ms[int(u)] for u in used]); print("mean of the used darks 02..07 ROI means %.3f (offset map ROI mean above)" % mu)
+later = sorted(ms[k] for k in range(4, 8)); print("R as QA-A-337 defines it (median of Dark_04..07 ROI means, N=8 given) %.3f" % ((later[1] + later[2]) / 2))
+for k in (8, 9):
+    d = rd("%s/AED/Dark_%02d.raw" % (B, k))[roi] - off[roi]
+    rows = d.mean(1); cols = d.mean(0)
+    h, w = d.shape
+    q = [d[:h//2, :w//2].mean(), d[:h//2, w//2:].mean(), d[h//2:, :w//2].mean(), d[h//2:, w//2:].mean()]
+    print("Dark_%02d - offset: mean %+.3f | row means: min %+.3f p5 %+.3f median %+.3f p95 %+.3f max %+.3f | col means: min %+.3f p5 %+.3f median %+.3f p95 %+.3f max %+.3f | quadrants TL TR BL BR %+.3f %+.3f %+.3f %+.3f | pixel fraction < 0: %.4f" %
+          (k, d.mean(), rows.min(), *np.percentile(rows, [5, 50, 95]), rows.max(), cols.min(), *np.percentile(cols, [5, 50, 95]), cols.max(), *q, (d < 0).mean()))
+table(B, "same day base set (parent folder)")
