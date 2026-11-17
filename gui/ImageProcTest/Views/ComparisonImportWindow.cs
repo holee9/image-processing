@@ -65,6 +65,21 @@ public sealed class ComparisonImportWindow : Window
     private readonly ScrollViewer _scrollA = new() { HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, MinHeight = 240, MaxHeight = 400 };
     private readonly ScrollViewer _scrollB = new() { HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, MinHeight = 240, MaxHeight = 400 };
     private readonly ScaleTransform _scaleA = new(1, 1), _scaleB = new(1, 1);
+    private readonly TextBox _markerK = new() { Width = 65, Text = "5" };
+    private readonly TextBox _markerN = new() { Width = 65, Text = "16" };
+    private readonly Button _markerApply = new() { Content = "Find difference regions", IsEnabled = false };
+    private readonly CheckBox _showDefectMarks = new() { Content = "Defect-map disagreement (cyan)", IsEnabled = false };
+    private readonly TextBlock _markerStatus = new() { TextWrapping = TextWrapping.Wrap };
+    private readonly TextBlock _markerWarning = new() { FontWeight = FontWeights.Bold, Foreground = Brushes.DarkOrange, TextWrapping = TextWrapping.Wrap };
+    private int _markerCandidateCount;
+    private readonly ListBox _markerList = new() { MinWidth = 290, MaxHeight = 250 };
+    private ComparisonMarkers.Prepared? _markerPrepared;
+    private ComparisonDefectMasks.Masks? _defectMasks;
+    private CancellationTokenSource? _markerCancel;
+    private int _markerOperation;
+    private long _sourceWidth, _sourceHeight;
+    private const string MarkerParameterNote = "N and area are sample pixels. Region marks describe these outputs, not a pass/fail criterion.";
+
 
     private ManifestSnapshot? _snapshot;   // what the user confirmed: validation, preview and computation are all bound to it
     private JsonNode? _manifest;
@@ -99,6 +114,7 @@ public sealed class ComparisonImportWindow : Window
         Auto(_state, "ComparisonStateText");
         _state.Text = "Status: no manifest opened. This compares imported files; it does not run 2G.";
         root.Children.Add(_state);
+        Auto(_markerWarning, "ComparisonMarkerWarning"); root.Children.Add(_markerWarning);
         Auto(_verdict, "ComparisonValidationStatus"); Auto(_reasons, "ComparisonReasonsList");
         root.Children.Add(_verdict); root.Children.Add(_reasons);
 
@@ -145,7 +161,15 @@ public sealed class ComparisonImportWindow : Window
         _captionA = (TextBlock)panelA.Children[0];
         _panelB = Viewer("B — new PRE (imported output)", _scrollB, _hostB, _imageB, _overlayB, _scaleB, "ComparisonViewerB");
         _viewers.Children.Add(panelA); _viewers.Children.Add(_panelB);
-        root.Children.Add(_viewers);
+        var markerControls = new WrapPanel { Margin = new Thickness(0, 6, 0, 4) };
+        markerControls.Children.Add(new TextBlock { Text = "Region k ", VerticalAlignment = VerticalAlignment.Center }); markerControls.Children.Add(_markerK);
+        markerControls.Children.Add(new TextBlock { Text = "  minimum N (sample px) ", VerticalAlignment = VerticalAlignment.Center }); markerControls.Children.Add(_markerN);
+        markerControls.Children.Add(_markerApply); markerControls.Children.Add(_showDefectMarks);
+        Auto(_markerK, "ComparisonMarkerK"); Auto(_markerN, "ComparisonMarkerN"); Auto(_markerApply, "ComparisonFindMarkersButton");
+        Auto(_showDefectMarks, "ComparisonDefectDisagreementToggle"); Auto(_markerStatus, "ComparisonMarkerStatus"); Auto(_markerList, "ComparisonMarkerList");
+        _markerStatus.Text = "Candidate total M: not computed. " + MarkerParameterNote;
+        var previewAndList = new DockPanel(); DockPanel.SetDock(_markerList, Dock.Right); previewAndList.Children.Add(_markerList); previewAndList.Children.Add(_viewers);
+        root.Children.Add(markerControls); root.Children.Add(_markerStatus); root.Children.Add(previewAndList);
 
         var actions = new WrapPanel { Margin = new Thickness(0, 6, 0, 2) };
         _computeButton.Padding = new Thickness(12, 6, 12, 6);
@@ -191,13 +215,24 @@ public sealed class ComparisonImportWindow : Window
             var button = e.Key == Key.Tab ? _toggleAb : e.Key == Key.D ? _difference : null;
             if (button?.IsEnabled == true) { button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); e.Handled = true; }
         };
+        _markerApply.Click += async (_, _) => await UpdateMarkersAsync();
+        _showDefectMarks.Checked += (_, _) => DrawMarkerOverlays(); _showDefectMarks.Unchecked += (_, _) => DrawMarkerOverlays();
+        _markerList.SelectionChanged += (_, _) => CenterMarkerSelection();
+        void ParametersChanged()
+        {
+            _markerOperation++; try { _markerCancel?.Cancel(); } catch (ObjectDisposedException) { }
+            _markerCandidateCount = 0; _markerWarning.Text = "";
+            _markerList.Items.Clear(); DrawMarkerOverlays(); _markerApply.IsEnabled = _markerPrepared?.ValidPixels > 0 && !_closed;
+            _markerStatus.Text = "Candidate total M: not computed for the edited parameters. " + MarkerParameterNote + " " + (_defectMasks?.Status ?? "");
+        }
+        _markerK.TextChanged += (_, _) => ParametersChanged(); _markerN.TextChanged += (_, _) => ParametersChanged();
         _scrollA.ScrollChanged +=  (_, _) => Sync(_scrollA, _scrollB);
         _scrollB.ScrollChanged += (_, _) => Sync(_scrollB, _scrollA);
         _manifestPath.TextChanged += (_, _) => Invalidate("Manifest path changed. Open and validate again.");
         _scriptPath.TextChanged += (_, _) => Invalidate("Contract script path changed. Open and validate again.");
         _pythonPath.TextChanged += (_, _) => Invalidate("Python path changed. Open and validate again.");
         _outputRoot.TextChanged += (_, _) => Invalidate("Output directory changed. Open and validate again.");
-        Closing += (_, _) => { _closed = true; _generation++; try { _cancel?.Cancel(); } catch (ObjectDisposedException) { } };   // closing is never blocked: the child process is stopped by the token and no late result is accepted
+        Closing += (_, _) => { _closed = true; _generation++; try { _cancel?.Cancel(); _markerCancel?.Cancel(); } catch (ObjectDisposedException) { } };   // closing is never blocked: the child process is stopped by the token and no late result is accepted
     }
 
     private static TextBlock Label(string text) => new() { Text = text, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 4) };
@@ -263,7 +298,9 @@ public sealed class ComparisonImportWindow : Window
     /// <summary>Drops everything derived from the previous inputs: a result must never outlive the inputs it describes.</summary>
     private void Invalidate(string why)
     {
-        _generation++;
+        _generation++; _markerOperation++; try { _markerCancel?.Cancel(); } catch (ObjectDisposedException) { }
+        _markerPrepared = null; _defectMasks = null; _markerCandidateCount = 0; _markerWarning.Text = ""; _markerList.Items.Clear(); _markerApply.IsEnabled = false;
+        _showDefectMarks.IsEnabled = false; _showDefectMarks.IsChecked = false; _markerStatus.Text = "Candidate total M: not computed. " + MarkerParameterNote;
         _snapshot = null; _manifest = null; _validation = null; _backend = null; _pixelsA = _pixelsB = null;
         _imageA.Source = _imageB.Source = null;
         _bitmapA = _bitmapB = _differenceBitmap = null; _single = _showB = _showDifference = false;
@@ -370,6 +407,7 @@ public sealed class ComparisonImportWindow : Window
         cancel.ThrowIfCancellationRequested();
         if (gen != _generation || _closed) return;
         if (mismatch is not null) { _viewHint.Text = $"{mismatch} output SHA-256 differs from the validated manifest. No preview drawn. Open again."; return; }
+        _sourceWidth = a.Width; _sourceHeight = a.Height;
         _pixelsA = pa; _pixelsB = pb; _displayWidth = dw; _displayHeight = dh; _displayWidthB = bw; _displayHeightB = bh; _step = step;
         double lo = double.PositiveInfinity, hi = double.NegativeInfinity;
         foreach (var arr in new[] { pa, pb })
@@ -393,6 +431,100 @@ public sealed class ComparisonImportWindow : Window
         if (roi is not null) DrawRoi(roi);
         ZoomFit();
         SetBusy(_busy);   // enables the compute button once the display is ready
+        await PrepareMarkersAsync(gen, cancel);
+    }
+
+    private async Task PrepareMarkersAsync(int gen, CancellationToken cancel)
+    {
+        if (!_difference.IsEnabled) { _markerStatus.Text = "Region/defect marks unavailable: output dimensions differ; no alignment is performed."; return; }
+        int? R(string key) => _manifest?["roi"]?[key] is JsonValue v && v.TryGetValue<long>(out var n) && n >= 0 && n <= int.MaxValue ? (int)n : null;
+        var x = R("x"); var y = R("y"); var w = R("width"); var h = R("height");
+        if (x is null || y is null || w is null or <= 0 || h is null or <= 0 || (long)x + w > _sourceWidth || (long)y + h > _sourceHeight)
+        { _markerStatus.Text = "Regions unavailable: an in-frame integer ROI is required."; return; }
+        var manifest = _manifest; var baseDir = _baseDir; var a = _pixelsA!; var b = _pixelsB!; var sw = _displayWidth; var sh = _displayHeight; var step = _step; var sourceW = _sourceWidth; var sourceH = _sourceHeight;
+        var result = await Task.Run(() =>
+        {
+            var masks = ComparisonDefectMasks.Read(manifest, baseDir, sourceW, sourceH, step, cancel);
+            var prepared = ComparisonMarkers.Prepare(a, b, sw, sh, step, x.Value, y.Value, w.Value, h.Value, masks.Excluded, cancel);
+            return (masks, prepared);
+        }, cancel);
+        cancel.ThrowIfCancellationRequested(); if (_closed || gen != _generation) return;
+        _markerPrepared = result.prepared; _defectMasks = result.masks;
+        _showDefectMarks.IsEnabled = result.masks.DisagreementAvailable; _showDefectMarks.IsChecked = result.masks.DisagreementAvailable;
+        _markerApply.IsEnabled = result.prepared.ValidPixels > 0;
+        _markerStatus.Text = MarkerParameterNote + $" Preview step {_step}; finite non-defect ROI samples {result.prepared.ValidPixels}; s={result.prepared.Scale.ToString("G8", CultureInfo.InvariantCulture)}. " + result.masks.Status;
+        if (!string.IsNullOrWhiteSpace(_markerK.Text) && !string.IsNullOrWhiteSpace(_markerN.Text)) await UpdateMarkersAsync();
+    }
+
+    private async Task UpdateMarkersAsync()
+    {
+        if (_markerPrepared is null || _closed) return;
+        if (!double.TryParse(_markerK.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out var k) || !double.IsFinite(k) || k <= 0 ||
+            !int.TryParse(_markerN.Text, NumberStyles.None, CultureInfo.InvariantCulture, out var n) || n <= 0)
+        { _markerStatus.Text = "Enter finite positive k and positive integer N. " + MarkerParameterNote; return; }
+        try { _markerCancel?.Cancel(); } catch (ObjectDisposedException) { }
+        using var cts = new CancellationTokenSource(); _markerCancel = cts;
+        var operation = ++_markerOperation; var gen = _generation; var prepared = _markerPrepared;
+        _markerCandidateCount = 0; _markerWarning.Text = ""; _markerList.Items.Clear(); DrawMarkerOverlays(); _markerApply.IsEnabled = false;
+        _markerStatus.Text = "Finding connected regions on the display sample grid…";
+        try
+        {
+            var result = await Task.Run(() => ComparisonMarkers.Analyze(prepared, k, n, cts.Token), cts.Token);
+            if (_closed || gen != _generation || operation != _markerOperation) return;
+            _markerCandidateCount = result.CandidateCount;
+            _markerWarning.Text = result.CandidateCount > 20 ? $"차이가 넓게 퍼짐 — 후보 {result.CandidateCount}개 중 상위 20개 표시" : "";
+            for (var i = 0; i < result.Regions.Count; i++) _markerList.Items.Add(new MarkerRow(i + 1, result.Regions[i]));
+            _markerList.SelectedIndex = -1;
+            _markerStatus.Text = $"{result.CandidateCount} uncapped candidates; {result.Regions.Count}/20 shown by sum |A−B|. k={k.ToString("G8", CultureInfo.InvariantCulture)}, N={n} sample px, s={result.Scale.ToString("G8", CultureInfo.InvariantCulture)}, step {_step}. Lime boxes: difference regions. " + (_defectMasks?.Status ?? "");
+            DrawMarkerOverlays();
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception e) { if (!_closed && gen == _generation && operation == _markerOperation) _markerStatus.Text = "Region analysis failed: " + e.Message; }
+        finally { if (!_closed && gen == _generation && operation == _markerOperation) _markerApply.IsEnabled = true; if (ReferenceEquals(_markerCancel, cts)) _markerCancel = null; }
+    }
+
+    private sealed record MarkerRow(int Number, ComparisonMarkers.Region Region)
+    {
+        public override string ToString() => $"{Number}: ({Region.SourceX},{Region.SourceY}) · area {Region.Area} sample px · mean {Region.MeanDifference.ToString("G6", CultureInfo.InvariantCulture)}";
+    }
+
+    private void DrawMarkerOverlays()
+    {
+        BitmapSource? defectBitmap = null;
+        if (_markerPrepared is not null && _showDefectMarks.IsChecked == true && _defectMasks?.Disagreement is bool[] mask && mask.Any(x => x))
+        {
+            var colors = new byte[checked(mask.Length * 4)];
+            for (var i = 0; i < mask.Length; i++) if (mask[i]) { colors[i * 4] = 255; colors[i * 4 + 1] = 255; colors[i * 4 + 3] = 180; }
+            defectBitmap = BitmapSource.Create(_displayWidth, _displayHeight, 96, 96, PixelFormats.Bgra32, null, colors, _displayWidth * 4); defectBitmap.Freeze();
+        }
+        foreach (var canvas in new[] { _overlayA, _overlayB })
+        {
+            foreach (var item in canvas.Children.OfType<FrameworkElement>().Where(x => Equals(x.Tag, "marker")).ToArray()) canvas.Children.Remove(item);
+            if (_markerPrepared is null) continue;
+            if (defectBitmap is not null) canvas.Children.Add(new Image { Source = defectBitmap, Width = _displayWidth, Height = _displayHeight, Tag = "marker", IsHitTestVisible = false });
+            foreach (MarkerRow row in _markerList.Items)
+            {
+                // Dense fields retain the ranked list but draw no automatic difference boxes. Selection may highlight one region.
+                if (_markerCandidateCount > 20 && !ReferenceEquals(_markerList.SelectedItem, row)) continue;
+                var r = row.Region;
+                var box = new System.Windows.Shapes.Rectangle { Width = r.Width, Height = r.Height, Stroke = Brushes.Lime, StrokeThickness = 1 / Math.Max(_zoom, 1e-6), Tag = "marker", IsHitTestVisible = false };
+                Canvas.SetLeft(box, r.X); Canvas.SetTop(box, r.Y); canvas.Children.Add(box);
+                var label = new TextBlock { Text = row.Number.ToString(CultureInfo.InvariantCulture), Foreground = Brushes.Lime, Background = Brushes.Black, FontSize = 12 / Math.Max(_zoom, 1e-6), Tag = "marker", IsHitTestVisible = false };
+                Canvas.SetLeft(label, r.X); Canvas.SetTop(label, r.Y); canvas.Children.Add(label);
+            }
+        }
+    }
+
+    private void CenterMarkerSelection()
+    {
+        if (_markerList.SelectedItem is not MarkerRow row) return;
+        var r = row.Region;
+        var width = Math.Max(1, Math.Min(_scrollA.ViewportWidth, _scrollB.ViewportWidth));
+        var height = Math.Max(1, Math.Min(_scrollA.ViewportHeight, _scrollB.ViewportHeight));
+        SetZoom(Math.Max(_zoom, Math.Min(width / Math.Max(1, r.Width * 2), height / Math.Max(1, r.Height * 2)))); UpdateLayout();
+        foreach (var viewer in new[] { _scrollA, _scrollB })
+        { viewer.ScrollToHorizontalOffset((r.X + r.Width / 2.0) * _zoom - viewer.ViewportWidth / 2); viewer.ScrollToVerticalOffset((r.Y + r.Height / 2.0) * _zoom - viewer.ViewportHeight / 2); }
+        DrawMarkerOverlays();
     }
 
     private void RenderBoth(bool useTextWl)
@@ -493,6 +625,7 @@ public sealed class ComparisonImportWindow : Window
         _scaleA.ScaleX = _scaleA.ScaleY = _scaleB.ScaleX = _scaleB.ScaleY = _zoom;   // one scale for both
         foreach (var canvas in new[] { _overlayA, _overlayB })
             foreach (var r in canvas.Children.OfType<System.Windows.Shapes.Rectangle>()) r.StrokeThickness = 1.0 / _zoom;
+        foreach (var canvas in new[] { _overlayA, _overlayB }) foreach (var t in canvas.Children.OfType<TextBlock>().Where(x => Equals(x.Tag, "marker"))) t.FontSize = 12 / _zoom;
     }
 
     private void ZoomFit()
