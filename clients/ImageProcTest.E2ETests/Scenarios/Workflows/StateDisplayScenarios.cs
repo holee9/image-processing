@@ -1,4 +1,7 @@
 using FlaUI.Core.AutomationElements;
+using FlaUI.Core.Definitions;
+using System.Diagnostics;
+using System.Globalization;
 using ImageProcTest.E2ETests.Fixtures;
 using Xunit;
 using Xunit.Abstractions;
@@ -49,6 +52,42 @@ public sealed class StateDisplayScenarios(StateDisplayApplicationFixture app, IT
         var window = app.MainWindow!;
         AutomationElement Find(string id) => window.FindFirstDescendant(cf => cf.ByAutomationId(id))
             ?? throw new InvalidOperationException($"Missing {id}.");
+        WaitForFirstRender(Find("ChainStatusText"));
+
+        static void WaitForFirstRender(AutomationElement chainStatus)
+        {
+            using var process = Process.GetProcessById(chainStatus.Properties.ProcessId.Value);
+            var deadline = process.StartTime.ToUniversalTime() + TimeSpan.FromSeconds(30);
+            var rendered = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            static bool HasRender(string? value) => value is not null && value.StartsWith("render #", StringComparison.Ordinal)
+                && long.TryParse(value.AsSpan(8), NumberStyles.None, CultureInfo.InvariantCulture, out var id) && id > 0;
+            var handler = chainStatus.RegisterPropertyChangedEvent(TreeScope.Element,
+                (_, _, _) =>
+                {
+                    try
+                    {
+                        if (HasRender(chainStatus.HelpText)) rendered.TrySetResult(true);
+                    }
+                    catch (Exception error)
+                    {
+                        rendered.TrySetException(error);
+                    }
+                }, chainStatus.Automation.PropertyLibrary.Element.Name);
+            try
+            {
+                // Subscribe before reading so a render committed during registration cannot be missed.
+                if (HasRender(chainStatus.HelpText)) rendered.TrySetResult(true);
+                var remaining = deadline - DateTime.UtcNow;
+                Assert.True(rendered.Task.IsCompleted || (remaining > TimeSpan.Zero && rendered.Task.Wait(remaining)),
+                    "First render ID must be positive within the existing 30-second application startup budget.");
+                rendered.Task.GetAwaiter().GetResult();
+            }
+            finally
+            {
+                handler.Dispose();
+            }
+        }
+
         var footer = new[] { Find("ChainStatusText").Name, Find("FrameTimingText").Name, Find("StatusBarText").Name };
         output.WriteLine("D258 visible footer: " + string.Join(" | ", footer));
         Assert.All(footer, text => Assert.False(string.IsNullOrWhiteSpace(text)));
