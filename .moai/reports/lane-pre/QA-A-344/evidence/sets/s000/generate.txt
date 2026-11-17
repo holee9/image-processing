@@ -1,0 +1,8 @@
+exit 0 seconds 167
+--- stdout tail
+offset.xcal  7bea8aff45e56f58bc538027c84a37dc962189d5372b5c6733fb6af83216d6b9
+gain.xcal    573417e8d261bbe7ffd862560f75fc035ab25201a111337177ec20a5d2f362e0
+defect.xcal  94a62de143f0a91a54a888bb83961905879a7663f2f99e6f8a7b90c0511d5442  (792 defect pixels)
+manifest.json written to D:/workspace-github/xpe-data/qa-344-tmp/set\manifest.json
+--- stderr tail
+

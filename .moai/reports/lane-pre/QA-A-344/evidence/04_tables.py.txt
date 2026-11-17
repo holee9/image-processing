@@ -1,0 +1,32 @@
+# QA-A-344: before (QA-B-228 lead-sNNN report.json metrics) / after (this run, evidence/sets/sNNN/metrics.json) tables. Reads files only.
+import json,os,glob
+POST='D:/workspace-github/xpe-post/.moai/reports/lane-post/QA-B-228'; E='.moai/reports/lane-pre/QA-A-344/evidence'
+PANEL={'s000':'25L29G1','s002':'25L29G1','s003':'25L29G1','s007':'25L29G1','s014':'25L29G2','s018':'25L29G2','s020':'25L29G2','s021':'25L29G2','s023':'25L29G2',
+ 's025':'25L29G3','s026':'25L29G3','s029':'25L29G3','s031':'25L29G3','s032':'25L29G3','s033':'25L29G3','s047':'25L29G4','s049':'25L29I2','s050':'25L29I2','s053':'25L29I2',
+ 's055':'25L29I2','s058':'25L29I2','s065':'26A14F1','s066':'26A14F1','s069':'26A14F1','s070':'26A14F1','s073':'26A14F1','s075':'26A14J4','s078':'26A14K1','s080':'26D02I3','s083':'26D02I4'}
+F=('dark_bias_adu','dark_bias_signed_adu','dark_reduction_db','flat_residual_pct')
+def before(s):
+    d=f'{POST}/lead-{s}'; out={}
+    for kind,pat in (('dark','dark-*-report.json'),('flat','flat-*-report.json')):
+        out[kind]=[json.load(open(p,encoding='utf-8'))['metrics'] for p in sorted(glob.glob(f'{d}/{pat}'))]
+    return out
+fmt=lambda v,n: '—' if v is None else f'{v:.{n}f}'
+pair=lambda xs,f,n: ' / '.join(fmt(x.get(f),n) for x in xs)
+print('| 세트 | 패널 | DarkBias 전→후 | 부호 있는 DarkBias 전→후 | DarkReduction_dB 전→후 | FlatResidualPct % 전→후 | ≤1.0 % (목표 6) | ≤0.5 % (제품 게이트) |')
+print('|---|---|---|---|---|---|---|---|')
+agg={}
+for s in sorted(PANEL):
+    a=json.load(open(f'{E}/sets/{s}/metrics.json',encoding='utf-8'))
+    if a['gen_exit']!=0:
+        print(f'| {s} | {PANEL[s]} | 생성 거절 exit {a["gen_exit"]} (전과 같음, 중복 프레임) | | | | | |'); continue
+    b=before(s); fr=[x['flat_residual_pct'] for x in a['flat']]
+    print(f'| {s} | {PANEL[s]} | {pair(b["dark"],F[0],3)} → {pair(a["dark"],F[0],3)} | {pair(b["dark"],F[1],3)} → {pair(a["dark"],F[1],3)} | {pair(b["dark"],F[2],2)} → {pair(a["dark"],F[2],2)} | {pair(b["flat"],F[3],3)} → {pair(a["flat"],F[3],3)} | {sum(v<=1.0 for v in fr)}/2 | {sum(v<=0.5 for v in fr)}/2 |')
+    g=agg.setdefault(PANEL[s],{f:[] for f in F}); g.setdefault('sets',[]).append(s)
+    for f in F[:3]: g[f]+=[x[f] for x in a['dark']]
+    g[F[3]]+=fr
+print()
+print('| 패널 | 세트 | DarkBias 최소~최대 | 부호 있는 DarkBias 최소~최대 | DarkReduction_dB 최소~최대 | FlatResidualPct 최소~최대 | ≤1.0 % 프레임 | ≤0.5 % 프레임 |')
+print('|---|---|---|---|---|---|---|---|')
+for p,g in sorted(agg.items()):
+    fr=g[F[3]]
+    print(f'| {p} | {" ".join(g["sets"])} | {min(g[F[0]]):.3f} ~ {max(g[F[0]]):.3f} | {min(g[F[1]]):.3f} ~ {max(g[F[1]]):.3f} | {min(g[F[2]]):.2f} ~ {max(g[F[2]]):.2f} | {min(fr):.3f} ~ {max(fr):.3f} | {sum(v<=1.0 for v in fr)}/{len(fr)} | {sum(v<=0.5 for v in fr)}/{len(fr)} |')

@@ -1,0 +1,106 @@
+{
+  "generator": "xpe_calib_fixture_gen",
+  "mode": "frames",
+  "width": 3072,
+  "height": 3072,
+  "expiry_epoch_ms": 4102444800000,
+  "frames": {"dark": 7, "bright": 8, "bpm_bright": 20},
+  "settings": {
+    "offset": {"exposure_ms": 100, "temperature_c": 25},
+    "gain_dark_reference": "mean",
+    "bpm": {"lambda_dark": 8.0, "mask_size_dark": 32, "mask_size_bright": 128, "tolerance_pct": 0.070, "min_frames_dark": 5, "min_frames_bright": 10},
+    "saturated_share_limit": 0.0010,
+    "gain_dose_ratio": 1.0282,
+    "gain_dose_ratio_limit": 1.25,
+    "gain_dose_basis": "mean over pixels of max(0, bright - gain dark reference); reference: mean"
+  },
+  "inputs": [
+    {"role": "dark_excluded_first", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Dark_00.raw", "sha256": "88168960a50fac9c13dc4c0c39db161540257cd0f9666aee8c15bea7ef5af06d", "mean": 9449.490},
+    {"role": "dark", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Dark_01.raw", "sha256": "2f62dab51bf55aed76f3771d66e52605fd3d0d7204c558988f0b1e5d798c2efb", "mean": 9608.037},
+    {"role": "dark", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Dark_02.raw", "sha256": "62effd70f9b05b48f848f9cdb0b307cb1148082e3d4f9e4c9eedaedc5c00a75f", "mean": 9607.856},
+    {"role": "dark", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Dark_03.raw", "sha256": "9200b10c24a021c270aa098ed97fa09b0f15123f165d146da1e5392914cce16b", "mean": 9607.643},
+    {"role": "dark", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Dark_04.raw", "sha256": "d7303e3b1ac758d0f87d7cb6bcf09a3741fe4d33de75a21bd37833066323130b", "mean": 9607.591},
+    {"role": "dark", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Dark_05.raw", "sha256": "a6086479c9a3024ebcada83af673876be3355f48d8f02717661081a5d8d01fad", "mean": 9612.669},
+    {"role": "dark", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Dark_06.raw", "sha256": "b6c2e6e3547936070ab4764f850c4712775f19254ddfdd45b9feef00550949e6", "mean": 9607.689},
+    {"role": "dark", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Dark_07.raw", "sha256": "f4fba992a2068261a8a929fbed465a59a81a4af498f4f47f4f37fcb5d4070f46", "mean": 9607.432},
+    {"role": "bright_and_bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Bright_06.raw", "sha256": "f044e8a0871b2b3048123f378a42bcc41939c5d00cdebb784e0a25ded6edd66c", "mean": 18582.445},
+    {"role": "bright_and_bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Bright_07.raw", "sha256": "5f534fee064eed3925fd384286b8386b075729cd1239666d7394a48fdfc8ff49", "mean": 18425.826},
+    {"role": "bright_and_bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Bright_08.raw", "sha256": "7696058241bde12153340a6634bed8cd9e234edfbdcb6512c0b590c73e2cafda", "mean": 18590.615},
+    {"role": "bright_and_bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Bright_09.raw", "sha256": "be434b6d2205e0e9d69a2b074ada2d66d3484b90f4432bff3ece4e9eff8e787d", "mean": 18606.305},
+    {"role": "bright_and_bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Bright_10.raw", "sha256": "13b570ac0fcae9b96de32fb888813de5d7ac4561de0eca7fd26a9460aa704fa6", "mean": 18485.067},
+    {"role": "bright_and_bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Bright_11.raw", "sha256": "7481df504bcb21b2c1f45ba9fda778abb6f9c3a5c1b75815d3bb7435c3b30175", "mean": 18542.527},
+    {"role": "bright_and_bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Bright_12.raw", "sha256": "28442715d652d0c8ed7ec1239a64a7c27b17d9381e5f6bf4dd5deda4de0d57fa", "mean": 18590.890},
+    {"role": "bright_and_bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Bright_13.raw", "sha256": "11e10302187ff35487a3fdec0f82febc83592740e5b17b2b8e1c28f94b6e0749", "mean": 18674.801},
+    {"role": "bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Bright_00.raw", "sha256": "372dd31b6840a29dc12653f44436c9abfe66c841146ae567e030e6a2d9bb02f8", "mean": 12402.778},
+    {"role": "bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Bright_01.raw", "sha256": "3efd50e7c97a5a1c39e74f161bd6527d8a02893320649a3fe8f8896d0492d4e4", "mean": 12350.487},
+    {"role": "bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Bright_02.raw", "sha256": "f4a5c476769d67becc50eed4163633e74145a3c86178b2a93aeebcec2445c62d", "mean": 12503.986},
+    {"role": "bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Bright_03.raw", "sha256": "4f1698bd9c5eb60f7be056bfa6438f9a9e3fd1d10422b8cf3764c1a2becdfbb7", "mean": 15301.117},
+    {"role": "bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Bright_04.raw", "sha256": "2d9bb60cbd46c9955a9625cfbbe75fdf17c8a56c2347452bd5d3b999600132f3", "mean": 15292.999},
+    {"role": "bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Bright_05.raw", "sha256": "c2a1518c6e6ed85991aa8fa3b0d8824bd3cf2311981e0171e16a66477cc78a32", "mean": 15370.065},
+    {"role": "bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Bright_16.raw", "sha256": "5e34f3129e63a25e96ff055fad77d65f74120d57d960fa972b9142f3b41584b7", "mean": 27407.991},
+    {"role": "bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Bright_17.raw", "sha256": "57882e7f555efd54d51e3c9fe7d76d6d82697dded98d44795e226fdb4a4551ce", "mean": 27593.199},
+    {"role": "bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Bright_18.raw", "sha256": "e792bbb1f60dc6ce3d8bcde49464b7c54882b5892484a087ed2cfacc3cf34bb0", "mean": 27541.216},
+    {"role": "bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Bright_19.raw", "sha256": "02c7ab6b9675da45228e99a412b43608939468dcc7b97a4f884648efcbf2dcef", "mean": 37880.947},
+    {"role": "bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Bright_20.raw", "sha256": "22acc47071aca4583dd8ca96429ecf4c1ba435f4855ffb918eae168433600ac7", "mean": 38496.161},
+    {"role": "bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Bright_21.raw", "sha256": "cbce8d65992bc1b21d4f2ea8a65c89bddb923ebc5fe307d871a1af95344aeb8c", "mean": 38070.960}
+  ],
+  "dark_policy": {
+    "first_dark_excluded": true,
+    "one_list_for_all_stages": true,
+    "stages_on_the_used_list": ["offset", "gain_dark_reference", "defect_map"],
+    "gain_dark_reference": "the mean of the used darks (same list)",
+    "given": [
+      {"path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Dark_00.raw", "sha256": "88168960a50fac9c13dc4c0c39db161540257cd0f9666aee8c15bea7ef5af06d"},
+      {"path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Dark_01.raw", "sha256": "2f62dab51bf55aed76f3771d66e52605fd3d0d7204c558988f0b1e5d798c2efb"},
+      {"path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Dark_02.raw", "sha256": "62effd70f9b05b48f848f9cdb0b307cb1148082e3d4f9e4c9eedaedc5c00a75f"},
+      {"path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Dark_03.raw", "sha256": "9200b10c24a021c270aa098ed97fa09b0f15123f165d146da1e5392914cce16b"},
+      {"path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Dark_04.raw", "sha256": "d7303e3b1ac758d0f87d7cb6bcf09a3741fe4d33de75a21bd37833066323130b"},
+      {"path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Dark_05.raw", "sha256": "a6086479c9a3024ebcada83af673876be3355f48d8f02717661081a5d8d01fad"},
+      {"path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Dark_06.raw", "sha256": "b6c2e6e3547936070ab4764f850c4712775f19254ddfdd45b9feef00550949e6"},
+      {"path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Dark_07.raw", "sha256": "f4fba992a2068261a8a929fbed465a59a81a4af498f4f47f4f37fcb5d4070f46"}
+    ],
+    "used": [
+      {"path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Dark_01.raw", "sha256": "2f62dab51bf55aed76f3771d66e52605fd3d0d7204c558988f0b1e5d798c2efb"},
+      {"path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Dark_02.raw", "sha256": "62effd70f9b05b48f848f9cdb0b307cb1148082e3d4f9e4c9eedaedc5c00a75f"},
+      {"path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Dark_03.raw", "sha256": "9200b10c24a021c270aa098ed97fa09b0f15123f165d146da1e5392914cce16b"},
+      {"path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Dark_04.raw", "sha256": "d7303e3b1ac758d0f87d7cb6bcf09a3741fe4d33de75a21bd37833066323130b"},
+      {"path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Dark_05.raw", "sha256": "a6086479c9a3024ebcada83af673876be3355f48d8f02717661081a5d8d01fad"},
+      {"path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Dark_06.raw", "sha256": "b6c2e6e3547936070ab4764f850c4712775f19254ddfdd45b9feef00550949e6"},
+      {"path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Dark_07.raw", "sha256": "f4fba992a2068261a8a929fbed465a59a81a4af498f4f47f4f37fcb5d4070f46"}
+    ]
+  },
+  "defect_pixels": 792,
+  "dark_selection": {
+    "rule": "first frame always; then the leading run with |m_k - R| > T; R = median of the last ceil(N/2) means (even count: mean of the middle two)",
+    "roi_ltrb": [6, 2, 1, 1],
+    "T": 20.0,
+    "R": 9607.625,
+    "m": [9449.488, 9608.021, 9607.840, 9607.627, 9607.575, 9612.653, 9607.674, 9607.416],
+    "excluded": [
+      {"path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1/Dark_00.raw", "why": "first frame (always)"}
+    ],
+    "verdict": "used",
+    "dark_order": "as given, not checked"
+  },
+  "defect_format": {
+    "xcal_version": 2,
+    "method": "xpe_bpm_generate_v2 + xpe_bpm_find_lines (line mask merged into the pixel map), blobs by xpe_bpm_blobs",
+    "skip_first_dark": false,
+    "first_dark_excluded_by": "generator (once, before every stage)",
+    "margins_ltrb": [6, 2, 1, 1],
+    "dark_frames_used": 7,
+    "pixels_outside_imaging_area": 30699,
+    "line_groups": 0,
+    "line_pixels": 0,
+    "panel_reject": 0,
+    "blobs": 772,
+    "blobs_listed": 772,
+    "unconfirmed_candidates": 0,
+    "limits": "the BRIGHT_NOISE pixel bit near a line is biased (the local expectation is contaminated by the line): it is not evidence for a line pixel; segment ends at a crossing may include pixels of the crossing line; the unconfirmed candidates are a diagnostic appendix and are not part of the defect layer"
+  },
+  "files": {
+    "offset.xcal": "7bea8aff45e56f58bc538027c84a37dc962189d5372b5c6733fb6af83216d6b9",
+    "gain.xcal": "573417e8d261bbe7ffd862560f75fc035ab25201a111337177ec20a5d2f362e0",
+    "defect.xcal": "94a62de143f0a91a54a888bb83961905879a7663f2f99e6f8a7b90c0511d5442"
+  }
+}

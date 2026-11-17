@@ -1,0 +1,39 @@
+# QA-A-344: re-measure the QA-B-228 sets with the current tools (dev/preprocess, contains origin/main b6a9bd36 incl. QA-A-337 leading-dark rule).
+# Per set (sets = QA-B-228 lead-sNNN folders with a generate-args.txt), unchanged from QA-B-228 report.md:203-212 except the tools and the scratch path:
+#   generate: the recorded generate-args.txt, --out replaced by the scratch folder; offset generation uses the tool default (QA-A-337 rule)
+#   measure : xpe_pre_e2e --raw <held frame> --calib <set> --width 3072 --height 3072 --out <new> --input-kind dark|flat --gain-semantics normalized_gain --git-sha <HEAD>
+#             held frames = the keys of the set's dose.json (the same judgment frames as QA-B-228)
+# Kept per set in evidence/sets/sNNN/: generate stdout/stderr tail + exit, manifest.json, the four report.json metric values. Scratch deleted after each set.
+import json, os, shutil, subprocess, sys, time
+POST='D:/workspace-github/xpe-post/.moai/reports/lane-post/QA-B-228'
+BIN='D:/workspace-github/xpe-pre/build/ci-preprocess/bin'; TMP='D:/workspace-github/xpe-data/qa-344-tmp'
+EV=sys.argv[1]; SHA=sys.argv[2]
+sets=sorted(d[5:] for d in os.listdir(POST) if d.startswith('lead-s') and os.path.exists(f'{POST}/{d}/generate-args.txt'))
+rows=[]
+for s in sets:
+    src=f'{POST}/lead-{s}'; out=f'{EV}/sets/{s}'; os.makedirs(out,exist_ok=True)
+    shutil.rmtree(TMP,ignore_errors=True); os.makedirs(TMP)
+    args=open(f'{src}/generate-args.txt',encoding='utf-8').read().split('\n'); args=[a for a in args if a!='']
+    i=args.index('--out'); args[i+1]=f'{TMP}/set'
+    t0=time.time(); g=subprocess.run([f'{BIN}/xpe_calib_fixture_gen.exe']+args,capture_output=True,text=True,encoding='utf-8',errors='replace')
+    open(f'{out}/generate.txt','w',encoding='utf-8').write(f'exit {g.returncode} seconds {time.time()-t0:.0f}\n--- stdout tail\n'+'\n'.join(g.stdout.splitlines()[-15:])+'\n--- stderr tail\n'+'\n'.join(g.stderr.splitlines()[-15:])+'\n')
+    row={'set':s,'gen_exit':g.returncode}
+    if g.returncode==0:
+        shutil.copy(f'{TMP}/set/manifest.json',f'{out}/manifest.json')
+        folder=os.path.dirname(args[args.index('--dark')+1])
+        dose=json.load(open(f'{src}/dose.json',encoding='utf-8'))
+        for kind,key in (('dark','held_dark_raw_mean'),('flat','held_bright_raw_mean')):
+            for k,name in enumerate(sorted(dose[key])):
+                o=f'{TMP}/{kind}-{k}'
+                e=subprocess.run([f'{BIN}/xpe_pre_e2e.exe','--raw',f'{folder}/{name}','--calib',f'{TMP}/set','--width','3072','--height','3072','--out',o,'--input-kind',kind,'--gain-semantics','normalized_gain','--git-sha',SHA],capture_output=True,text=True,encoding='utf-8',errors='replace')
+                m={}
+                if os.path.exists(f'{o}/report.json'):
+                    m=json.load(open(f'{o}/report.json',encoding='utf-8')).get('metrics',{})
+                rec={'frame':name,'exit':e.returncode}
+                for f in ('dark_bias_adu','dark_bias_signed_adu','dark_reduction_db','flat_residual_pct'): rec[f]=m.get(f)
+                row.setdefault(kind,[]).append(rec)
+    json.dump(row,open(f'{out}/metrics.json','w',encoding='utf-8'),indent=1)
+    rows.append(row); print(s, row.get('gen_exit'), flush=True)
+    shutil.rmtree(TMP,ignore_errors=True)
+json.dump(rows,open(f'{EV}/02_rows.json.txt','w',encoding='utf-8'),indent=1)
+print('done', len(rows))
