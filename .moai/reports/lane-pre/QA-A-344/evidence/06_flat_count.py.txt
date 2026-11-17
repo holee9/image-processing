@@ -1,0 +1,8 @@
+# QA-A-344: count judgment flat frames against 1.0 % and 0.5 % from evidence/sets/*/metrics.json
+import json,glob
+fr=[]
+for p in sorted(glob.glob('.moai/reports/lane-pre/QA-A-344/evidence/sets/*/metrics.json')):
+    m=json.load(open(p,encoding='utf-8'))
+    for x in m.get('flat',[]): fr.append((m['set'],x['flat_residual_pct']))
+over=[s for s,v in fr if v>1.0]
+print('frames',len(fr),'le1.0',sum(v<=1.0 for _,v in fr),'gt1.0',len(over),'le0.5',sum(v<=0.5 for _,v in fr),'gt1.0 sets',sorted(set(over)))
