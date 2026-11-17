@@ -7,13 +7,14 @@ using System.Text.Json.Nodes;
 namespace ImageProcTest.Services.Comparison;
 
 /// <summary>
-/// DISPLAY-ONLY reader (QA-A-273/273b, Refs #278). It is used after the contract script has said "comparable" and reads the layout fields of the manifest SNAPSHOT (path, dtype, width, height, offset_bytes, sha256)
+/// DISPLAY-ONLY reader (QA-A-273/273b, Refs #278). It reads safe supported layouts independently of the contract comparability verdict and reads the layout fields of the manifest SNAPSHOT (path, dtype, width, height, offset_bytes, sha256)
 /// to draw a decimated copy of an output file. The numbers of a comparison never come from here: the script streams the ROI rows of the original files itself. Window/level, zoom and decimation therefore cannot
 /// change a statistic. A manifest this reader cannot interpret simply draws nothing. Every read can be cancelled; nothing read is accepted after a cancellation.
 ///
 /// Memory budget (arithmetic, not a promise for every shape). Limits: width and height each at most 2^24 = 16,777,216 (larger shapes get no preview), preview pixels P at most 4,000,000.
 ///   step = smallest integer with ceil(W/step) * ceil(H/step) &lt;= 4,000,000 (integer arithmetic in long; W*H &lt;= 2^48 cannot overflow a long).
 ///   Allocations made here: two double[P] preview arrays = 2 * 8 * 4,000,000 = 64,000,000 B; two byte[P] display copies = 8,000,000 B; one row buffer W * itemSize &lt;= 2^24 * 4 = 67,108,864 B at the limit.
+///   The optional signed-difference view additionally allocates a BGRA byte[4*P] buffer (at most 16,000,000 B); WPF bitmap copies are outside these reader allocations.
 ///   Total at the limits &lt;= 139,108,864 B (about 133 MiB), for the arrays this class allocates only. The WPF render surface at a high zoom and the runtime's own overhead are NOT included.
 /// </summary>
 public static class ComparisonDisplayReader
@@ -35,10 +36,11 @@ public static class ComparisonDisplayReader
         var h = Int("height");
         if (rel is null || item == 0 || w is null or <= 0 || h is null or <= 0 || w > MaxSide || h > MaxSide) return null;
         var offset = o.ContainsKey("offset_bytes") ? Int("offset_bytes") : 0;
-        if (offset is null or < 0) return null;
+        if (offset is null or < 0 || Str("endian") != "little" || Int("stride_bytes") != w * item) return null;
         var b = System.IO.Path.GetFullPath(baseDir).TrimEnd('\\', '/');
         var p = System.IO.Path.GetFullPath(System.IO.Path.Combine(b, rel));
         if (!p.StartsWith(b + System.IO.Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) return null;   // never read outside the manifest folder
+        if (!File.Exists(p) || new FileInfo(p).Length != offset.Value + w.Value * h.Value * item) return null;
         return new Layout(p, dtype!, item, w.Value, h.Value, offset.Value, Str("sha256"));
     }
 
