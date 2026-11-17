@@ -42,6 +42,7 @@ public sealed class ImportedComparisonTests
             Assert.Same(b, Field<Image>(w, "_imageA").Source);
             Click(w, "_toggleAb");
             Assert.Same(a, Field<Image>(w, "_imageA").Source);
+            Field<System.Windows.Controls.CheckBox>(w, "_differenceExtrema").IsChecked = true;
             Click(w, "_difference");
             var image = Assert.IsAssignableFrom<BitmapSource>(Field<Image>(w, "_imageA").Source);
             var pixels = new byte[image.PixelWidth * image.PixelHeight * 4];
@@ -52,6 +53,80 @@ public sealed class ImportedComparisonTests
             Assert.Equal(new byte[] { 0, 0, 255, 255 }, pixels[8..12]);
             Click(w, "_difference");
             Assert.Same(a, Field<Image>(w, "_imageA").Source);
+        });
+
+    [Fact]
+    public void C273_RobustRange_ShowsSmallConstantDifferenceDespiteOneExtremeOutlier()
+        => OnWindow((w, _) =>
+        {
+            Click(w, "_difference");
+            var image = (BitmapSource)Field<Image>(w, "_imageA").Source;
+            var pixels = new byte[image.PixelWidth * image.PixelHeight * 4];
+            image.CopyPixels(pixels, image.PixelWidth * 4, 0);
+            // MAD=0: every nonzero finite difference saturates, zero stays white.
+            Assert.Equal(new byte[] { 0, 0, 255, 255 }, pixels[4..8]);
+            Assert.Equal(new byte[] { 255, 255, 255, 255 }, pixels[8..12]);
+            Assert.Contains("saturated 511/512 display pixels", Field<TextBlock>(w, "_modeText").Text);
+            Assert.Contains("scale k·s", Field<TextBlock>(w, "_modeText").Text);
+        }, files =>
+        {
+            using (var a = new BinaryWriter(File.Create(Path.Combine(files.Directory, "a.raw"))))
+                for (var i = 0; i < 128 * 4; i++) a.Write((ushort)(i == 0 ? 65532 : i == 2 ? 0 : 3));
+            using (var b = new BinaryWriter(File.Create(Path.Combine(files.Directory, "b.raw"))))
+                for (var i = 0; i < 128 * 4; i++) b.Write(0f);
+            foreach (var side in new[] { "A", "B" })
+            {
+                var file = side == "A" ? "a.raw" : "b.raw";
+                files.Manifest["engines"]![side]!["output"]!["sha256"] = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(Path.Combine(files.Directory, file)))).ToLowerInvariant();
+            }
+            File.WriteAllText(files.ManifestPath, files.Manifest.ToJsonString());
+        });
+
+    [Fact]
+    public void C273_PositiveMad_UsesFiveTimesScale_CountsOnlyClippedFinitePixels_AndCanSwitchRanges()
+        => OnWindow((w, _) =>
+        {
+            var a = Enumerable.Range(0, 512).Select(i => (double)(i % 3 - 1)).ToArray();
+            a[0] = 65532; a[1] = 3; a[2] = double.NaN;
+            var b = new double[a.Length];
+            Set(w, "_pixelsA", a); Set(w, "_pixelsB", b);
+            Set(w, "_markerPrepared", ComparisonMarkers.Prepare(a, b, 128, 4, 1, 0, 0, 128, 4, null, CancellationToken.None));
+            Click(w, "_difference");
+            byte[] Read()
+            {
+                var image = (BitmapSource)Field<Image>(w, "_imageA").Source;
+                var bytes = new byte[512 * 4]; image.CopyPixels(bytes, 128 * 4, 0); return bytes;
+            }
+            var robust = Read();
+            Assert.Equal(new byte[] { 152, 152, 255, 255 }, robust[4..8]);
+            Assert.Equal(new byte[] { 255, 0, 255, 255 }, robust[8..12]);
+            Assert.Contains("red +7.413", Field<TextBlock>(w, "_modeText").Text);
+            Assert.Contains("saturated 1/511 display pixels", Field<TextBlock>(w, "_modeText").Text);
+            var extrema = Field<System.Windows.Controls.CheckBox>(w, "_differenceExtrema");
+            extrema.IsChecked = true;
+            Assert.Equal(new byte[] { 255, 255, 255, 255 }, Read()[4..8]);
+            Assert.Contains("red +65532", Field<TextBlock>(w, "_modeText").Text);
+            Assert.Contains("saturated 0/511 display pixels", Field<TextBlock>(w, "_modeText").Text);
+            extrema.IsChecked = false;
+            Assert.Equal(robust, Read());
+            Set(w, "_differenceK", double.MaxValue);
+            Invoke(w, "RefreshDifference");
+            Assert.Contains("extrema fallback: k·s is non-finite", Field<TextBlock>(w, "_modeText").Text);
+            Assert.Contains("red +65532", Field<TextBlock>(w, "_modeText").Text);
+        });
+
+    [Fact]
+    public void C273_AllZeroDifference_StaysWhite_WithNoSaturation()
+        => OnWindow((w, _) =>
+        {
+            var zeros = new double[512];
+            Set(w, "_pixelsA", zeros); Set(w, "_pixelsB", zeros);
+            Set(w, "_markerPrepared", ComparisonMarkers.Prepare(zeros, zeros, 128, 4, 1, 0, 0, 128, 4, null, CancellationToken.None));
+            Click(w, "_difference");
+            var image = (BitmapSource)Field<Image>(w, "_imageA").Source;
+            var bytes = new byte[512 * 4]; image.CopyPixels(bytes, 128 * 4, 0);
+            Assert.All(bytes, x => Assert.Equal(255, x));
+            Assert.Contains("saturated 0/512 display pixels", Field<TextBlock>(w, "_modeText").Text);
         });
 
     [Fact]
@@ -203,6 +278,7 @@ public sealed class ImportedComparisonTests
             return true;
         });
 
+    private static void Set(object obj, string name, object value) => obj.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(obj, value);
     private static void Pump() => Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ContextIdle);
     private static T Field<T>(object obj, string name) => (T)(obj.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(obj)
         ?? throw new InvalidOperationException("Missing field " + name));

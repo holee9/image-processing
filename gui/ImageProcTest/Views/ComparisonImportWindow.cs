@@ -50,6 +50,8 @@ public sealed class ComparisonImportWindow : Window
     private readonly Button _sideBySide = new() { Content = "Side by side", IsEnabled = false };
     private readonly Button _toggleAb = new() { Content = "Show B (Ctrl+Tab)", IsEnabled = false };
     private readonly Button _difference = new() { Content = "Difference A−B (Ctrl+D)", IsEnabled = false };
+    private readonly CheckBox _differenceExtrema = new() { Content = "Difference: extrema range", IsEnabled = false };
+    private double _differenceK = 5;
     private readonly TextBlock _modeText = new() { TextWrapping = TextWrapping.Wrap };
     private readonly UniformGrid _viewers = new() { Columns = 2, Margin = new Thickness(0, 4, 0, 4) };
     private UIElement _panelB = null!;
@@ -153,7 +155,13 @@ public sealed class ComparisonImportWindow : Window
         Auto(_actual, "ComparisonZoom100Button"); Auto(_zoomIn, "ComparisonZoomInButton"); Auto(_zoomOut, "ComparisonZoomOutButton");
         Auto(_sideBySide, "ComparisonSideBySideButton"); Auto(_toggleAb, "ComparisonToggleAbButton"); Auto(_difference, "ComparisonDifferenceButton");
         Auto(_modeText, "ComparisonDisplayMode"); Auto(_imageA, "ComparisonImageA"); Auto(_imageB, "ComparisonImageB");
-        root.Children.Add(controls); root.Children.Add(_modeText);
+        Auto(_differenceExtrema, "ComparisonDifferenceExtremaToggle");
+        var differenceMode = new DockPanel();
+        DockPanel.SetDock(_differenceExtrema, Dock.Right);
+        differenceMode.Children.Add(_differenceExtrema); differenceMode.Children.Add(_modeText);
+        _differenceExtrema.Checked += (_, _) => RefreshDifference();
+        _differenceExtrema.Unchecked += (_, _) => RefreshDifference();
+        root.Children.Add(controls); root.Children.Add(differenceMode);
         Auto(_roiText, "ComparisonRoiText"); Auto(_viewHint, "ComparisonViewHint");
         root.Children.Add(_roiText); root.Children.Add(_viewHint);
 
@@ -303,6 +311,7 @@ public sealed class ComparisonImportWindow : Window
         _showDefectMarks.IsEnabled = false; _showDefectMarks.IsChecked = false; _markerStatus.Text = "Candidate total M: not computed. " + MarkerParameterNote;
         _snapshot = null; _manifest = null; _validation = null; _backend = null; _pixelsA = _pixelsB = null;
         _imageA.Source = _imageB.Source = null;
+        _differenceExtrema.IsEnabled = false; _differenceK = 5;
         _bitmapA = _bitmapB = _differenceBitmap = null; _single = _showB = _showDifference = false;
         _modeText.Text = ""; _panelB.Visibility = Visibility.Visible; _viewers.Columns = 2; _overlayA.Children.Clear(); _overlayB.Children.Clear();
         if (!_busy) _computeButton.IsEnabled = false;
@@ -424,6 +433,7 @@ public sealed class ComparisonImportWindow : Window
             + ". The contract script computes statistics from source-file ROI rows, not display arrays. W/L, zoom and downsampling do not affect the numbers. Initial W/L spans all finite values in both images; no threshold is selected.";
         foreach (var btn in new[] { _applyWl, _fit, _actual, _zoomIn, _zoomOut, _sideBySide, _toggleAb }) btn.IsEnabled = true;
         _difference.IsEnabled = a.Width == b.Width && a.Height == b.Height;
+        _differenceExtrema.IsEnabled = _difference.IsEnabled;
         _difference.ToolTip = _difference.IsEnabled ? "Signed original-value A−B; blue negative, white zero, red positive." : "Difference unavailable: output dimensions differ; no alignment or resizing is performed.";
         if (!_difference.IsEnabled) _viewHint.Text += " Difference unavailable: dimensions differ; both outputs retain their own dimensions.";
         _differenceBitmap = null;
@@ -471,6 +481,7 @@ public sealed class ComparisonImportWindow : Window
         {
             var result = await Task.Run(() => ComparisonMarkers.Analyze(prepared, k, n, cts.Token), cts.Token);
             if (_closed || gen != _generation || operation != _markerOperation) return;
+            _differenceK = k; RefreshDifference();
             _markerCandidateCount = result.CandidateCount;
             _markerWarning.Text = result.CandidateCount > 20 ? $"차이가 넓게 퍼짐 — 후보 {result.CandidateCount}개 중 상위 20개 표시" : "";
             for (var i = 0; i < result.Regions.Count; i++) _markerList.Items.Add(new MarkerRow(i + 1, result.Regions[i]));
@@ -581,12 +592,23 @@ public sealed class ComparisonImportWindow : Window
         }
     }
 
+    private void RefreshDifference()
+    {
+        _differenceBitmap = null;
+        ApplyView();
+    }
+
     private BitmapSource DifferenceBitmap()
     {
         var a = _pixelsA!; var b = _pixelsB!;
         double peak = 0;
         for (var i = 0; i < a.Length; i++)
             if (double.IsFinite(a[i] - b[i])) peak = Math.Max(peak, Math.Abs(a[i] - b[i]));
+        var extrema = _differenceExtrema.IsChecked == true;
+        var range = extrema ? peak : _differenceK * (_markerPrepared?.Scale ?? 0);
+        var fallback = !double.IsFinite(range);
+        if (fallback) range = peak;
+        var saturated = 0; var finite = 0;
         var bytes = new byte[a.Length * 4];
         for (var i = 0; i < a.Length; i++)
         {
@@ -594,14 +616,18 @@ public sealed class ComparisonImportWindow : Window
             if (!double.IsFinite(difference)) { bytes[offset] = 255; bytes[offset + 2] = 255; }
             else
             {
-                var pale = (byte)Math.Round(255 * (1 - (peak > 0 ? Math.Abs(difference) / peak : 0)));
+                finite++;
+                if (Math.Abs(difference) > range) saturated++;
+                // Zero MAD gives a zero-width range: zero is white, every nonzero value saturates.
+                var magnitude = range > 0 ? Math.Min(1, Math.Abs(difference) / range) : difference == 0 ? 0 : 1;
+                var pale = (byte)Math.Round(255 * (1 - magnitude));
                 bytes[offset] = difference <= 0 ? (byte)255 : pale;
                 bytes[offset + 1] = pale;
                 bytes[offset + 2] = difference >= 0 ? (byte)255 : pale;
             }
             bytes[offset + 3] = 255;
         }
-        _differenceLegend = $"Signed original-value A−B: blue −{peak.ToString("G6", CultureInfo.InvariantCulture)} · white 0 · red +{peak.ToString("G6", CultureInfo.InvariantCulture)}. Magenta = non-finite. W/L does not change differences.";
+        _differenceLegend = $"Signed original-value A−B ({(extrema ? "extrema" : fallback ? "extrema fallback: k·s is non-finite" : "scale k·s")}): blue −{range.ToString("G6", CultureInfo.InvariantCulture)} · white 0 · red +{range.ToString("G6", CultureInfo.InvariantCulture)}; saturated {saturated}/{finite} display pixels (포화 화소 수). Magenta = non-finite. W/L does not change differences.";
         var bitmap = BitmapSource.Create(_displayWidth, _displayHeight, 96, 96, PixelFormats.Bgra32, null, bytes, _displayWidth * 4);
         bitmap.Freeze(); return bitmap;
     }
