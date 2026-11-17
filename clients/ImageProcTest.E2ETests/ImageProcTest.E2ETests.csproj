@@ -97,4 +97,10 @@
     <Compile Include="..\ImageProcTest\Diagnostics\PreprocessSyntheticOracleResult.cs" Link="LegacyPreview\Linked\PreprocessSyntheticOracleResult.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- GUI-C-270: exercise the imported-output window without loading the app/native modules. -->
+    <Compile Include="..\..\gui\ImageProcTest\Views\ComparisonImportWindow.cs" Link="ImportedComparison\ComparisonImportWindow.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\Comparison\*.cs" Link="ImportedComparison\%(Filename)%(Extension)" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\AtomicFile.cs" Link="ImportedComparison\AtomicFile.cs" />
+  </ItemGroup>
 </Project>

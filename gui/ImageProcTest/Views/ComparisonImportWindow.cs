@@ -7,6 +7,7 @@ using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
+using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using ImageProcTest.Services;
 using ImageProcTest.Services.Comparison;
@@ -46,12 +47,23 @@ public sealed class ComparisonImportWindow : Window
     private readonly Button _actual = new() { Content = "100%", IsEnabled = false };
     private readonly Button _zoomIn = new() { Content = "+", IsEnabled = false };
     private readonly Button _zoomOut = new() { Content = "−", IsEnabled = false };
+    private readonly Button _sideBySide = new() { Content = "Side by side", IsEnabled = false };
+    private readonly Button _toggleAb = new() { Content = "Show B (Ctrl+Tab)", IsEnabled = false };
+    private readonly Button _difference = new() { Content = "Difference A−B (Ctrl+D)", IsEnabled = false };
+    private readonly TextBlock _modeText = new() { TextWrapping = TextWrapping.Wrap };
+    private readonly UniformGrid _viewers = new() { Columns = 2, Margin = new Thickness(0, 4, 0, 4) };
+    private UIElement _panelB = null!;
+    private TextBlock _captionA = null!;
+    private BitmapSource? _bitmapA, _bitmapB, _differenceBitmap;
+    private bool _single, _showB, _showDifference, _beforeDifferenceSingle;
+    private string _differenceLegend = "";
+    private int _displayWidthB, _displayHeightB;
     private readonly Image _imageA = new() { Stretch = Stretch.None, SnapsToDevicePixels = true };
     private readonly Image _imageB = new() { Stretch = Stretch.None, SnapsToDevicePixels = true };
     private readonly Canvas _overlayA = new(), _overlayB = new();
     private readonly Grid _hostA = new(), _hostB = new();
-    private readonly ScrollViewer _scrollA = new() { HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, MinHeight = 240 };
-    private readonly ScrollViewer _scrollB = new() { HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, MinHeight = 240 };
+    private readonly ScrollViewer _scrollA = new() { HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, MinHeight = 240, MaxHeight = 400 };
+    private readonly ScrollViewer _scrollB = new() { HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, MinHeight = 240, MaxHeight = 400 };
     private readonly ScaleTransform _scaleA = new(1, 1), _scaleB = new(1, 1);
 
     private ManifestSnapshot? _snapshot;   // what the user confirmed: validation, preview and computation are all bound to it
@@ -87,6 +99,8 @@ public sealed class ComparisonImportWindow : Window
         Auto(_state, "ComparisonStateText");
         _state.Text = "Status: no manifest opened. This compares imported files; it does not run 2G.";
         root.Children.Add(_state);
+        Auto(_verdict, "ComparisonValidationStatus"); Auto(_reasons, "ComparisonReasonsList");
+        root.Children.Add(_verdict); root.Children.Add(_reasons);
 
         root.Children.Add(Label("Contract script path (tools/calibration/comparison_manifest.py — no default; last used value is remembered)"));
         root.Children.Add(_scriptPath); Auto(_scriptPath, "ComparisonScriptPathBox");
@@ -110,7 +124,7 @@ public sealed class ComparisonImportWindow : Window
         root.Children.Add(_outputRoot);
 
         Auto(_verdict, "ComparisonValidationStatus"); Auto(_reasons, "ComparisonReasonsList"); Auto(_engines, "ComparisonEngineSummary");
-        root.Children.Add(_verdict); root.Children.Add(_reasons); root.Children.Add(_engines);
+        root.Children.Add(_engines);
 
         // display controls: one window/level, one zoom, the same ROI
         var controls = new WrapPanel { Margin = new Thickness(0, 8, 0, 4) };
@@ -118,17 +132,20 @@ public sealed class ComparisonImportWindow : Window
         controls.Children.Add(_window);
         controls.Children.Add(new TextBlock { Text = "  Level ", VerticalAlignment = VerticalAlignment.Center });
         controls.Children.Add(_level);
-        foreach (var b in new[] { _applyWl, _fit, _actual, _zoomIn, _zoomOut }) { b.Margin = new Thickness(6, 0, 0, 0); b.Padding = new Thickness(10, 2, 10, 2); controls.Children.Add(b); }
+        foreach (var b in new[] { _applyWl, _fit, _actual, _zoomIn, _zoomOut, _sideBySide, _toggleAb, _difference }) { b.Margin = new Thickness(6, 0, 0, 0); b.Padding = new Thickness(10, 2, 10, 2); controls.Children.Add(b); }
         Auto(_window, "ComparisonWindowBox"); Auto(_level, "ComparisonLevelBox"); Auto(_applyWl, "ComparisonApplyWlButton"); Auto(_fit, "ComparisonZoomFitButton");
         Auto(_actual, "ComparisonZoom100Button"); Auto(_zoomIn, "ComparisonZoomInButton"); Auto(_zoomOut, "ComparisonZoomOutButton");
-        root.Children.Add(controls);
+        Auto(_sideBySide, "ComparisonSideBySideButton"); Auto(_toggleAb, "ComparisonToggleAbButton"); Auto(_difference, "ComparisonDifferenceButton");
+        Auto(_modeText, "ComparisonDisplayMode"); Auto(_imageA, "ComparisonImageA"); Auto(_imageB, "ComparisonImageB");
+        root.Children.Add(controls); root.Children.Add(_modeText);
         Auto(_roiText, "ComparisonRoiText"); Auto(_viewHint, "ComparisonViewHint");
         root.Children.Add(_roiText); root.Children.Add(_viewHint);
 
-        var viewers = new UniformGrid { Columns = 2, Margin = new Thickness(0, 4, 0, 4) };
-        viewers.Children.Add(Viewer("A — official Samsung 2G X64W (imported output)", _scrollA, _hostA, _imageA, _overlayA, _scaleA, "ComparisonViewerA"));
-        viewers.Children.Add(Viewer("B — new PRE (imported output)", _scrollB, _hostB, _imageB, _overlayB, _scaleB, "ComparisonViewerB"));
-        root.Children.Add(viewers);
+        var panelA = (StackPanel)Viewer("A — official Samsung 2G X64W (imported output)", _scrollA, _hostA, _imageA, _overlayA, _scaleA, "ComparisonViewerA");
+        _captionA = (TextBlock)panelA.Children[0];
+        _panelB = Viewer("B — new PRE (imported output)", _scrollB, _hostB, _imageB, _overlayB, _scaleB, "ComparisonViewerB");
+        _viewers.Children.Add(panelA); _viewers.Children.Add(_panelB);
+        root.Children.Add(_viewers);
 
         var actions = new WrapPanel { Margin = new Thickness(0, 6, 0, 2) };
         _computeButton.Padding = new Thickness(12, 6, 12, 6);
@@ -160,7 +177,21 @@ public sealed class ComparisonImportWindow : Window
         _actual.Click += (_, _) => SetZoom(1.0 / _step);
         _zoomIn.Click += (_, _) => SetZoom(_zoom * 1.25);
         _zoomOut.Click += (_, _) => SetZoom(_zoom / 1.25);
-        _scrollA.ScrollChanged += (_, _) => Sync(_scrollA, _scrollB);
+        _sideBySide.Click += (_, _) => { _single = _showB = _showDifference = false; ApplyView(); };
+        _toggleAb.Click += (_, _) => { _single = true; _showDifference = false; _showB = !_showB; ApplyView(); };
+        _difference.Click += (_, _) =>
+        {
+            if (!_showDifference) { _beforeDifferenceSingle = _single; _single = true; }
+            else _single = _beforeDifferenceSingle;
+            _showDifference = !_showDifference; ApplyView();
+        };
+        PreviewKeyDown += (_, e) =>
+        {
+            if (Keyboard.Modifiers != ModifierKeys.Control) return;
+            var button = e.Key == Key.Tab ? _toggleAb : e.Key == Key.D ? _difference : null;
+            if (button?.IsEnabled == true) { button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); e.Handled = true; }
+        };
+        _scrollA.ScrollChanged +=  (_, _) => Sync(_scrollA, _scrollB);
         _scrollB.ScrollChanged += (_, _) => Sync(_scrollB, _scrollA);
         _manifestPath.TextChanged += (_, _) => Invalidate("Manifest path changed. Open and validate again.");
         _scriptPath.TextChanged += (_, _) => Invalidate("Contract script path changed. Open and validate again.");
@@ -234,9 +265,11 @@ public sealed class ComparisonImportWindow : Window
     {
         _generation++;
         _snapshot = null; _manifest = null; _validation = null; _backend = null; _pixelsA = _pixelsB = null;
-        _imageA.Source = _imageB.Source = null; _overlayA.Children.Clear(); _overlayB.Children.Clear();
+        _imageA.Source = _imageB.Source = null;
+        _bitmapA = _bitmapB = _differenceBitmap = null; _single = _showB = _showDifference = false;
+        _modeText.Text = ""; _panelB.Visibility = Visibility.Visible; _viewers.Columns = 2; _overlayA.Children.Clear(); _overlayB.Children.Clear();
         if (!_busy) _computeButton.IsEnabled = false;
-        foreach (var b in new[] { _applyWl, _fit, _actual, _zoomIn, _zoomOut }) b.IsEnabled = false;
+        foreach (var b in new[] { _applyWl, _fit, _actual, _zoomIn, _zoomOut, _sideBySide, _toggleAb, _difference }) b.IsEnabled = false;
         _verdict.Text = ""; _reasons.Text = ""; _engines.Text = ""; _roiText.Text = ""; _viewHint.Text = "";
         _result.Text = "";
         _state.Text = "Status: " + why + " Imported-file comparison; no 2G execution.";
@@ -263,7 +296,7 @@ public sealed class ComparisonImportWindow : Window
             _snapshot = snapshot; _manifest = snapshot.Json; _baseDir = snapshot.BaseDir; _backend = backend; _validation = response;
             UpdateReviewLine(response.Script);
             ShowValidation();
-            if (response.Ok && response.Validation?["comparable"]?.GetValue<bool>() == true) await LoadDisplayAsync(gen, cts.Token);
+            if (response.Ok) await LoadDisplayAsync(gen, cts.Token);
         }
         catch (OperationCanceledException)
         {
@@ -296,7 +329,7 @@ public sealed class ComparisonImportWindow : Window
         var kind = v["comparison_kind"]?.GetValue<string>() ?? "?";
         var attribution = v["algorithm_attribution"]?.GetValue<bool>() == true;
         var reviewed = r.Script?.Reviewed == true;
-        _verdict.Text = (comparable ? $"Script response: comparable — kind {kind}" : "Script response: not comparable — no numbers until the reasons below are resolved.")
+        _verdict.Text = (comparable ? $"Script response: comparable — kind {kind}" : "Script response: not comparable — preview only; reasons below. Statistics remain disabled.")
             + (comparable ? $" · Contract attribution conditions: {(attribution ? "satisfied (production history and quality are not verified)" : "not applicable (non-attributable label)")}" : "")
             + (reviewed ? "" : "  [unreviewed contract]");
         var lines = ((JsonArray)v["reasons"]!).Select(x => x!.GetValue<string>()).ToList();
@@ -320,24 +353,24 @@ public sealed class ComparisonImportWindow : Window
     {
         var a = ComparisonDisplayReader.ReadLayout(_manifest?["engines"]?["A"]?["output"], _baseDir);
         var b = ComparisonDisplayReader.ReadLayout(_manifest?["engines"]?["B"]?["output"], _baseDir);
-        if (a is null || b is null) { _viewHint.Text = "Display layout could not be read or exceeds the preview limit (2^24 pixels per dimension). No preview; comparability is a separate result."; return; }
-        var step = ComparisonDisplayReader.ChooseStep(a.Width, a.Height);
-        var (pa, pb, dw, dh, mismatch) = await Task.Run(async () =>
+        if (a is null || b is null) { _viewHint.Text = "Cannot safely preview: unsupported dtype/endian/packed stride, missing or wrong-length file, invalid path, or dimensions above 2^24. Comparability is a separate result."; return; }
+        var step = Math.Max(ComparisonDisplayReader.ChooseStep(a.Width, a.Height), ComparisonDisplayReader.ChooseStep(b.Width, b.Height));
+        var (pa, pb, dw, dh, bw, bh, mismatch) = await Task.Run(async () =>
         {
             // the preview is bound to the confirmed manifest: a file whose bytes differ from the recorded SHA-256 is not drawn
             foreach (var (name, l) in new[] { ("A", a), ("B", b) })
             {
                 var actual = await ComparisonDisplayReader.Sha256Async(l.Path, cancel);
-                if (!string.Equals(actual, l.Sha256, StringComparison.OrdinalIgnoreCase)) return (Array.Empty<double>(), Array.Empty<double>(), 0, 0, (string?)name);
+                if (!string.Equals(actual, l.Sha256, StringComparison.OrdinalIgnoreCase)) return (Array.Empty<double>(), Array.Empty<double>(), 0, 0, 0, 0, (string?)name);
             }
             var (x, w, h) = ComparisonDisplayReader.ReadDecimated(a, step, cancel);
-            var (y, _, _) = ComparisonDisplayReader.ReadDecimated(b, step, cancel);
-            return (x, y, w, h, (string?)null);
+            var (y, wb, hb) = ComparisonDisplayReader.ReadDecimated(b, step, cancel);
+            return (x, y, w, h, wb, hb, (string?)null);
         }, cancel);
         cancel.ThrowIfCancellationRequested();
         if (gen != _generation || _closed) return;
         if (mismatch is not null) { _viewHint.Text = $"{mismatch} output SHA-256 differs from the validated manifest. No preview drawn. Open again."; return; }
-        _pixelsA = pa; _pixelsB = pb; _displayWidth = dw; _displayHeight = dh; _step = step;
+        _pixelsA = pa; _pixelsB = pb; _displayWidth = dw; _displayHeight = dh; _displayWidthB = bw; _displayHeightB = bh; _step = step;
         double lo = double.PositiveInfinity, hi = double.NegativeInfinity;
         foreach (var arr in new[] { pa, pb })
             foreach (var v in arr)
@@ -347,13 +380,17 @@ public sealed class ComparisonImportWindow : Window
         _dataMin = lo; _dataMax = hi;
         _window.Text = (hi - lo).ToString("R", CultureInfo.InvariantCulture);
         _level.Text = ((hi + lo) / 2).ToString("R", CultureInfo.InvariantCulture);
-        var roi = _manifest!["roi"]!;
-        _roiText.Text = $"ROI (manifest integer coordinates, shared by A and B): x={roi["x"]}, y={roi["y"]}, width={roi["width"]}, height={roi["height"]}";
+        var roi = _manifest!["roi"] as JsonObject;
+        _roiText.Text = roi is null ? "No ROI recorded." : $"ROI (manifest coordinates; no alignment applied): x={roi["x"]}, y={roi["y"]}, width={roi["width"]}, height={roi["height"]}";
         _viewHint.Text = $"Display-only copy: source {a.Width}×{a.Height}" + (step > 1 ? $", sampled every {step} pixels ({dw}×{dh}) — display coordinate = source coordinate ÷ {step}" : ", no downsampling")
             + ". The contract script computes statistics from source-file ROI rows, not display arrays. W/L, zoom and downsampling do not affect the numbers. Initial W/L spans all finite values in both images; no threshold is selected.";
-        foreach (var btn in new[] { _applyWl, _fit, _actual, _zoomIn, _zoomOut }) btn.IsEnabled = true;
+        foreach (var btn in new[] { _applyWl, _fit, _actual, _zoomIn, _zoomOut, _sideBySide, _toggleAb }) btn.IsEnabled = true;
+        _difference.IsEnabled = a.Width == b.Width && a.Height == b.Height;
+        _difference.ToolTip = _difference.IsEnabled ? "Signed original-value A−B; blue negative, white zero, red positive." : "Difference unavailable: output dimensions differ; no alignment or resizing is performed.";
+        if (!_difference.IsEnabled) _viewHint.Text += " Difference unavailable: dimensions differ; both outputs retain their own dimensions.";
+        _differenceBitmap = null;
         RenderBoth(useTextWl: false);
-        DrawRoi(roi);
+        if (roi is not null) DrawRoi(roi);
         ZoomFit();
         SetBusy(_busy);   // enables the compute button once the display is ready
     }
@@ -371,11 +408,12 @@ public sealed class ComparisonImportWindow : Window
             }
             lo = ll - ww / 2; hi = ll + ww / 2;
         }
-        _imageA.Source = ToBitmap(_pixelsA, lo, hi);
-        _imageB.Source = ToBitmap(_pixelsB, lo, hi);   // the SAME lo/hi for both: one window/level
+        _bitmapA = ToBitmap(_pixelsA, _displayWidth, _displayHeight, lo, hi);
+        _bitmapB = ToBitmap(_pixelsB, _displayWidthB, _displayHeightB, lo, hi); // SAME lo/hi
+        ApplyView();
     }
 
-    private BitmapSource ToBitmap(double[] pixels, double lo, double hi)
+    private static BitmapSource ToBitmap(double[] pixels, int width, int height, double lo, double hi)
     {
         var bytes = new byte[pixels.Length];
         var scale = 255.0 / (hi - lo);
@@ -384,9 +422,56 @@ public sealed class ComparisonImportWindow : Window
             var v = pixels[i];
             bytes[i] = !double.IsFinite(v) ? (byte)0 : (byte)Math.Clamp(Math.Round((v - lo) * scale), 0, 255);
         }
-        var bmp = BitmapSource.Create(_displayWidth, _displayHeight, 96, 96, PixelFormats.Gray8, null, bytes, _displayWidth);
+        var bmp = BitmapSource.Create(width, height, 96, 96, PixelFormats.Gray8, null, bytes, width);
         bmp.Freeze();
         return bmp;
+    }
+
+    private void ApplyView()
+    {
+        if (_bitmapA is null || _bitmapB is null) return;
+        if (_showDifference && _differenceBitmap is null) _differenceBitmap = DifferenceBitmap();
+        _imageA.Source = _showDifference ? _differenceBitmap : _single && _showB ? _bitmapB : _bitmapA;
+        _imageB.Source = _bitmapB;
+        _viewers.Columns = _single ? 1 : 2;
+        _panelB.Visibility = _single ? Visibility.Collapsed : Visibility.Visible;
+        var name = _showDifference ? "A−B difference" : _single && _showB ? "B — new PRE" : "A — official Samsung 2G X64W";
+        _captionA.Text = name;
+        _toggleAb.Content = _showB ? "Show A (Ctrl+Tab)" : "Show B (Ctrl+Tab)";
+        _difference.Content = _showDifference ? "Hide difference (Ctrl+D)" : "Difference A−B (Ctrl+D)";
+        _modeText.Text = _showDifference ? _differenceLegend : _single ? name + " · one-position comparison" : "Side by side · shared W/L, zoom and scroll";
+        foreach (var (image, canvas, label) in new[] { (_imageA, _overlayA, name), (_imageB, _overlayB, "B — new PRE") })
+        {
+            if (image.Source is not BitmapSource bitmap) continue;
+            canvas.Width = bitmap.PixelWidth; canvas.Height = bitmap.PixelHeight;
+            AutomationProperties.SetName(image, label);
+            AutomationProperties.SetHelpText(image, $"Displayed {bitmap.PixelWidth}×{bitmap.PixelHeight}; source sampling step {_step}. No alignment applied.");
+        }
+    }
+
+    private BitmapSource DifferenceBitmap()
+    {
+        var a = _pixelsA!; var b = _pixelsB!;
+        double peak = 0;
+        for (var i = 0; i < a.Length; i++)
+            if (double.IsFinite(a[i] - b[i])) peak = Math.Max(peak, Math.Abs(a[i] - b[i]));
+        var bytes = new byte[a.Length * 4];
+        for (var i = 0; i < a.Length; i++)
+        {
+            var difference = a[i] - b[i]; var offset = i * 4;
+            if (!double.IsFinite(difference)) { bytes[offset] = 255; bytes[offset + 2] = 255; }
+            else
+            {
+                var pale = (byte)Math.Round(255 * (1 - (peak > 0 ? Math.Abs(difference) / peak : 0)));
+                bytes[offset] = difference <= 0 ? (byte)255 : pale;
+                bytes[offset + 1] = pale;
+                bytes[offset + 2] = difference >= 0 ? (byte)255 : pale;
+            }
+            bytes[offset + 3] = 255;
+        }
+        _differenceLegend = $"Signed original-value A−B: blue −{peak.ToString("G6", CultureInfo.InvariantCulture)} · white 0 · red +{peak.ToString("G6", CultureInfo.InvariantCulture)}. Magenta = non-finite. W/L does not change differences.";
+        var bitmap = BitmapSource.Create(_displayWidth, _displayHeight, 96, 96, PixelFormats.Bgra32, null, bytes, _displayWidth * 4);
+        bitmap.Freeze(); return bitmap;
     }
 
     private void DrawRoi(JsonNode roi)
@@ -395,7 +480,7 @@ public sealed class ComparisonImportWindow : Window
         foreach (var canvas in new[] { _overlayA, _overlayB })
         {
             canvas.Children.Clear();
-            canvas.Width = _displayWidth; canvas.Height = _displayHeight;
+            canvas.ClipToBounds = true;
             var rect = new System.Windows.Shapes.Rectangle { Width = Math.Max(1.0, (double)L("width") / _step), Height = Math.Max(1.0, (double)L("height") / _step), Stroke = Brushes.Yellow, StrokeThickness = 1.0 / Math.Max(_zoom, 1e-6), IsHitTestVisible = false };
             Canvas.SetLeft(rect, (double)L("x") / _step); Canvas.SetTop(rect, (double)L("y") / _step);
             canvas.Children.Add(rect);
@@ -415,7 +500,7 @@ public sealed class ComparisonImportWindow : Window
         if (_displayWidth <= 0 || _displayHeight <= 0) return;
         var vw = Math.Max(50.0, Math.Min(_scrollA.ViewportWidth > 0 ? _scrollA.ViewportWidth : 500, _scrollB.ViewportWidth > 0 ? _scrollB.ViewportWidth : 500) - 4);
         var vh = Math.Max(50.0, Math.Min(_scrollA.ViewportHeight > 0 ? _scrollA.ViewportHeight : 300, _scrollB.ViewportHeight > 0 ? _scrollB.ViewportHeight : 300) - 4);
-        SetZoom(Math.Min(vw / _displayWidth, vh / _displayHeight));
+        SetZoom(Math.Min(vw / Math.Max(_displayWidth, _displayWidthB), vh / Math.Max(_displayHeight, _displayHeightB)));
     }
 
     private void Sync(ScrollViewer from, ScrollViewer to)
