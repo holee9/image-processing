@@ -1,0 +1,20 @@
+# QA-A-343: do the CLEAN sets' defect maps mask the pixels of the planted line items? (map files only; v1 vs v2)
+# If the clean set of an edition masks a line position, the clean output C (the reference of the correction-error z, xpe_bpm_eval.cpp:2427-2465)
+# is itself interpolated there, and z then compares two interpolations from shared neighbours.
+import numpy as np, collections
+S=3072; T='D:/workspace-github/xpe-data/qa-343-tmp/'; TR='D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/'
+ids=np.fromfile(TR+'truth_ids.u16',np.uint16).reshape(S,S)
+m1=np.fromfile(T+'clean_v1_setmap.u8',np.uint8).reshape(S,S)!=0; m2=np.fromfile(T+'clean_v2_setmap.u8',np.uint8).reshape(S,S)!=0
+kind={}
+for line in open(TR+'truth.tsv',encoding='utf-8'):
+    c=line.rstrip('\n').split('\t')
+    if len(c)>=3 and c[0].isdigit(): kind[int(c[0])]=c[1]+'/'+c[2]
+print('clean map masked pixels: v1', int(m1.sum()), ' v2', int(m2.sum()))
+acc=collections.defaultdict(lambda:[0,0,0])
+for i in np.unique(ids):
+    if i==0 or i==65535 or int(i) not in kind: continue
+    k=kind[int(i)]
+    if k.split('/')[0] not in ('line','pixel','block'): continue
+    sel=ids==i; a=acc[k]; a[0]+=int(sel.sum()); a[1]+=int(m1[sel].sum()); a[2]+=int(m2[sel].sum())
+print('class/kind\titem_pixels\tmasked_in_clean_v1\tmasked_in_clean_v2')
+for k,(n,a,b) in sorted(acc.items()): print(f'{k}\t{n}\t{a}\t{b}')

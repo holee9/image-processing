@@ -1,0 +1,16 @@
+# QA-A-341 same-dose pre-check: for every set of the QA-A-340 locked list (88941f8f), the raw ROI-free whole-frame mean of the two
+# evaluation brights and their ratio. No correction, no flatness metric. sha256 of each frame is re-checked against the locked list.
+import json, sys, hashlib, numpy as np
+L = json.loads(open(sys.argv[1], encoding="utf-8").read())
+bad = 0
+print("side\tset\tframe_a\tframe_b\tmean_a\tmean_b\tratio_b_over_a\tsha_ok\tverdict")
+for s in L:
+    ev = s["ev"]; ms = []; ok = True
+    for name, sha in ev:
+        p = s["folder"] + "/" + name; b = open(p, "rb").read()
+        ok &= hashlib.sha256(b).hexdigest() == sha
+        ms.append(np.frombuffer(b, dtype=np.uint16).astype(np.float64).mean())
+    r = ms[1] / ms[0]; v = "ok" if abs(r - 1) <= 0.02 else "OUT (dose mismatch)"
+    bad += v != "ok"
+    print("%s\t%s\t%s\t%s\t%.2f\t%.2f\t%.5f\t%s\t%s" % (s["side"], s["set"], ev[0][0], ev[1][0], ms[0], ms[1], r, ok, v))
+print("sets", len(L), "outside 1+-0.02:", bad)

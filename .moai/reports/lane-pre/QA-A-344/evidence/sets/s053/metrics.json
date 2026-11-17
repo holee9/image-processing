@@ -1,0 +1,40 @@
+{
+ "set": "s053",
+ "gen_exit": 0,
+ "dark": [
+  {
+   "frame": "Dark_08.raw",
+   "exit": 0,
+   "dark_bias_adu": 0.7405452731093606,
+   "dark_bias_signed_adu": -1.0800341612239526,
+   "dark_reduction_db": 16.30646338627042,
+   "flat_residual_pct": null
+  },
+  {
+   "frame": "Dark_09.raw",
+   "exit": 0,
+   "dark_bias_adu": 0.7082851360766143,
+   "dark_bias_signed_adu": -1.1762279360613395,
+   "dark_reduction_db": 16.483921293772383,
+   "flat_residual_pct": null
+  }
+ ],
+ "flat": [
+  {
+   "frame": "Bright_14.raw",
+   "exit": 0,
+   "dark_bias_adu": null,
+   "dark_bias_signed_adu": null,
+   "dark_reduction_db": null,
+   "flat_residual_pct": 0.635770994290779
+  },
+  {
+   "frame": "Bright_15.raw",
+   "exit": 0,
+   "dark_bias_adu": null,
+   "dark_bias_signed_adu": null,
+   "dark_reduction_db": null,
+   "flat_residual_pct": 0.6332981453265626
+  }
+ ]
+}

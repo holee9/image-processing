@@ -1,0 +1,14 @@
+clean map masked pixels: v1 133  v2 2338
+class/kind	item_pixels	masked_in_clean_v1	masked_in_clean_v2
+block/dead	1488	0	1
+line/dead	16652	0	3
+line/efficiency_loss	31821	0	5
+line/gain_loss	31830	0	8
+line/noisy	27284	0	7
+line/nonlinear	27245	0	4
+pixel/dead	64	0	0
+pixel/efficiency_loss	192	0	0
+pixel/gain_loss	192	0	0
+pixel/hot	256	0	0
+pixel/noisy	192	0	0
+pixel/nonlinear	128	0	0

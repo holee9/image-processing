@@ -1,0 +1,45 @@
+## val
+frames 14 | sets 7 | C2-undeterminable frames 0
+n_eff per frame (n0 - placement impossible) distribution: {142: 14} | placement-impossible per frame: [0]
+c0: valid draws M 280, undeterminable draws 0, nearest-rank 99th percentile of the exceedance ratio 0.11268, mean 0.05312, distinct ratio values (value: draws) {0.01408: 2, 0.02113: 9, 0.02817: 27, 0.03521: 29, 0.04225: 37, 0.0493: 44, 0.05634: 41, 0.06338: 28, 0.07042: 20, 0.07746: 19, 0.08451: 17, 0.09155: 2, 0.09859: 1, 0.11268: 3, 0.11972: 1}
+c2: valid draws M 280, undeterminable draws 0, nearest-rank 99th percentile of the exceedance ratio 0.02113, mean 0.00319, distinct ratio values (value: draws) {0.0: 180, 0.00704: 80, 0.01408: 14, 0.02113: 5, 0.02817: 1}
+overlapping moved-part pairs per draw: min 1093 median 1211 max 1321
+|D|/sigma_C2 > 5 among null-draw parts (diagnostic only): 0 / 39760
+injection c0 a=2: detected 9 / valid 1878 = 0.0048 | already over before injection 110, undeterminable 0, injection impossible 0
+injection c0 a=3: detected 13 / valid 1878 = 0.0069 | already over before injection 110, undeterminable 0, injection impossible 0
+injection c0 a=4: detected 15 / valid 1878 = 0.0080 | already over before injection 110, undeterminable 0, injection impossible 0
+injection c0 a=5: detected 21 / valid 1878 = 0.0112 | already over before injection 110, undeterminable 0, injection impossible 0
+injection c2 a=2: detected 2 / valid 1980 = 0.0010 | already over before injection 8, undeterminable 0, injection impossible 0
+injection c2 a=3: detected 3 / valid 1980 = 0.0015 | already over before injection 8, undeterminable 0, injection impossible 0
+injection c2 a=4: detected 5 / valid 1980 = 0.0025 | already over before injection 8, undeterminable 0, injection impossible 0
+injection c2 a=5: detected 6 / valid 1980 = 0.0030 | already over before injection 8, undeterminable 0, injection impossible 0
+## val exposed set G4_0410_plain_47 only
+frames 2 | sets 1 | C2-undeterminable frames 0
+n_eff per frame (n0 - placement impossible) distribution: {142: 2} | placement-impossible per frame: [0]
+c0: valid draws M 40, undeterminable draws 0, nearest-rank 99th percentile of the exceedance ratio 0.07042, mean 0.04525, distinct ratio values (value: draws) {0.02113: 2, 0.02817: 4, 0.03521: 4, 0.04225: 9, 0.0493: 12, 0.05634: 5, 0.06338: 3, 0.07042: 1}
+c2: valid draws M 40, undeterminable draws 0, nearest-rank 99th percentile of the exceedance ratio 0.02113, mean 0.00299, distinct ratio values (value: draws) {0.0: 28, 0.00704: 9, 0.01408: 1, 0.02113: 2}
+overlapping moved-part pairs per draw: min 1146 median 1211 max 1305
+|D|/sigma_C2 > 5 among null-draw parts (diagnostic only): 0 / 5680
+injection c0 a=2: detected 1 / valid 271 = 0.0037 | already over before injection 13, undeterminable 0, injection impossible 0
+injection c0 a=3: detected 3 / valid 271 = 0.0111 | already over before injection 13, undeterminable 0, injection impossible 0
+injection c0 a=4: detected 3 / valid 271 = 0.0111 | already over before injection 13, undeterminable 0, injection impossible 0
+injection c0 a=5: detected 4 / valid 271 = 0.0148 | already over before injection 13, undeterminable 0, injection impossible 0
+injection c2 a=2: detected 1 / valid 283 = 0.0035 | already over before injection 1, undeterminable 0, injection impossible 0
+injection c2 a=3: detected 1 / valid 283 = 0.0035 | already over before injection 1, undeterminable 0, injection impossible 0
+injection c2 a=4: detected 1 / valid 283 = 0.0035 | already over before injection 1, undeterminable 0, injection impossible 0
+injection c2 a=5: detected 1 / valid 283 = 0.0035 | already over before injection 1, undeterminable 0, injection impossible 0
+## val without G4_0410_plain_47
+frames 12 | sets 6 | C2-undeterminable frames 0
+n_eff per frame (n0 - placement impossible) distribution: {142: 12} | placement-impossible per frame: [0]
+c0: valid draws M 240, undeterminable draws 0, nearest-rank 99th percentile of the exceedance ratio 0.11268, mean 0.05443, distinct ratio values (value: draws) {0.01408: 2, 0.02113: 7, 0.02817: 23, 0.03521: 25, 0.04225: 28, 0.0493: 32, 0.05634: 36, 0.06338: 25, 0.07042: 19, 0.07746: 19, 0.08451: 17, 0.09155: 2, 0.09859: 1, 0.11268: 3, 0.11972: 1}
+c2: valid draws M 240, undeterminable draws 0, nearest-rank 99th percentile of the exceedance ratio 0.02113, mean 0.00323, distinct ratio values (value: draws) {0.0: 152, 0.00704: 71, 0.01408: 13, 0.02113: 3, 0.02817: 1}
+overlapping moved-part pairs per draw: min 1093 median 1211 max 1321
+|D|/sigma_C2 > 5 among null-draw parts (diagnostic only): 0 / 34080
+injection c0 a=2: detected 8 / valid 1607 = 0.0050 | already over before injection 97, undeterminable 0, injection impossible 0
+injection c0 a=3: detected 10 / valid 1607 = 0.0062 | already over before injection 97, undeterminable 0, injection impossible 0
+injection c0 a=4: detected 12 / valid 1607 = 0.0075 | already over before injection 97, undeterminable 0, injection impossible 0
+injection c0 a=5: detected 17 / valid 1607 = 0.0106 | already over before injection 97, undeterminable 0, injection impossible 0
+injection c2 a=2: detected 1 / valid 1697 = 0.0006 | already over before injection 7, undeterminable 0, injection impossible 0
+injection c2 a=3: detected 2 / valid 1697 = 0.0012 | already over before injection 7, undeterminable 0, injection impossible 0
+injection c2 a=4: detected 4 / valid 1697 = 0.0024 | already over before injection 7, undeterminable 0, injection impossible 0
+injection c2 a=5: detected 5 / valid 1697 = 0.0029 | already over before injection 7, undeterminable 0, injection impossible 0

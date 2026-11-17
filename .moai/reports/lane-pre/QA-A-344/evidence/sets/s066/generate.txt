@@ -1,0 +1,5 @@
+exit 13 seconds 10
+--- stdout tail
+
+--- stderr tail
+duplicate bright frame: 'D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/26A14F1/20260310_GT1717C__pp_������_��_������/2026.03.09_CJ519119NAAA_26A14F1/AED/Bright_03.raw' and 'D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/26A14F1/20260310_GT1717C__pp_������_��_������/2026.03.09_CJ519119NAAA_26A14F1/AED/Bright_04.raw' have the same content (sha-256 b522b91567d91521cabdfe2a8c8b8700d8a399ff30e78ace9441826c51c902cf); a frame is given once per role

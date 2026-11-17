@@ -1,0 +1,8 @@
+(a) C0 port vs xpe_bpm_eval QA-A-331 ratio_clean, 142 parts in the same order, full-frame rects: max |diff| 0.000000 (json has 4 decimals); clean over-3 count 8 (QA-A-331: 8)
+estimate_C seconds 0.82
+(b) part idx 0 used (6, 3, 3065, 1) A 7.5: C0 shortcut 5.944000032 literal 5.944000032 | C2 shortcut 4.387703773 literal 4.387703773 | C identical True
+(b) part idx 0 used (6, 3, 3065, 1) A -3.25: C0 shortcut -7.172276316 literal -7.172276316 | C2 shortcut -5.294384873 literal -5.294384873 | C identical True
+(b) part idx 1 used (7, 2, 1, 3069) A 7.5: C0 shortcut 8.141253578 literal 8.141253578 | C2 shortcut 5.809408388 literal 5.809408388 | C identical True
+(b) part idx 1 used (7, 2, 1, 3069) A -3.25: C0 shortcut -4.891612778 literal -4.891612778 | C2 shortcut -3.490540619 literal -3.490540619 | C identical True
+(b) part idx 5 used (7, 40, 2, 768) A 7.5: C0 shortcut 2.519905107 literal 2.519905107 | C2 shortcut 1.410179923 literal 1.410179923 | C identical True
+(b) part idx 5 used (7, 40, 2, 768) A -3.25: C0 shortcut -5.368199457 literal -5.368199457 | C2 shortcut -3.004131814 literal -3.004131814 | C identical True

@@ -1,0 +1,1130 @@
+[
+ {
+  "set": "s000",
+  "gen_exit": 0,
+  "dark": [
+   {
+    "frame": "Dark_08.raw",
+    "exit": 0,
+    "dark_bias_adu": 0.4647880045912915,
+    "dark_bias_signed_adu": -1.8613664252738722,
+    "dark_reduction_db": 20.8574816621037,
+    "flat_residual_pct": null
+   },
+   {
+    "frame": "Dark_09.raw",
+    "exit": 0,
+    "dark_bias_adu": 0.49208608808238374,
+    "dark_bias_signed_adu": -1.7526971460257355,
+    "dark_reduction_db": 20.61792008856785,
+    "flat_residual_pct": null
+   }
+  ],
+  "flat": [
+   {
+    "frame": "Bright_14.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.6391142950343471
+   },
+   {
+    "frame": "Bright_15.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.641624093000065
+   }
+  ]
+ },
+ {
+  "set": "s002",
+  "gen_exit": 0,
+  "dark": [
+   {
+    "frame": "Dark_08.raw",
+    "exit": 0,
+    "dark_bias_adu": 0.9173809242152129,
+    "dark_bias_signed_adu": -0.5867895060683886,
+    "dark_reduction_db": 16.417180367066734,
+    "flat_residual_pct": null
+   },
+   {
+    "frame": "Dark_09.raw",
+    "exit": 0,
+    "dark_bias_adu": 0.7727403091838514,
+    "dark_bias_signed_adu": -0.9438003463240132,
+    "dark_reduction_db": 17.09488177071221,
+    "flat_residual_pct": null
+   }
+  ],
+  "flat": [
+   {
+    "frame": "Bright_24.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.6979405506385084
+   },
+   {
+    "frame": "Bright_25.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.6966286906870361
+   }
+  ]
+ },
+ {
+  "set": "s003",
+  "gen_exit": 0,
+  "dark": [
+   {
+    "frame": "Dark_08.raw",
+    "exit": 0,
+    "dark_bias_adu": 0.8754290523473612,
+    "dark_bias_signed_adu": -0.7063081337280984,
+    "dark_reduction_db": 17.99767683989163,
+    "flat_residual_pct": null
+   },
+   {
+    "frame": "Dark_09.raw",
+    "exit": 0,
+    "dark_bias_adu": 0.03162646386915771,
+    "dark_bias_signed_adu": -5.783826665361435,
+    "dark_reduction_db": 33.22466952343462,
+    "flat_residual_pct": null
+   }
+  ],
+  "flat": [
+   {
+    "frame": "Bright_25.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.6795639329581481
+   },
+   {
+    "frame": "Bright_26.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.6919770048690079
+   }
+  ]
+ },
+ {
+  "set": "s007",
+  "gen_exit": 13
+ },
+ {
+  "set": "s014",
+  "gen_exit": 0,
+  "dark": [
+   {
+    "frame": "Dark_08.raw",
+    "exit": 0,
+    "dark_bias_adu": 1.024407073539689,
+    "dark_bias_signed_adu": -0.5726546904424473,
+    "dark_reduction_db": 16.65138925581037,
+    "flat_residual_pct": null
+   },
+   {
+    "frame": "Dark_09.raw",
+    "exit": 0,
+    "dark_bias_adu": 1.0315680873485482,
+    "dark_bias_signed_adu": -0.5528508511661521,
+    "dark_reduction_db": 16.61513656300533,
+    "flat_residual_pct": null
+   }
+  ],
+  "flat": [
+   {
+    "frame": "Bright_08.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 1.1311406998805782
+   },
+   {
+    "frame": "Bright_09.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 1.128562499585482
+   }
+  ]
+ },
+ {
+  "set": "s018",
+  "gen_exit": 0,
+  "dark": [
+   {
+    "frame": "Dark_08.raw",
+    "exit": 0,
+    "dark_bias_adu": 0.4534701042261859,
+    "dark_bias_signed_adu": -1.7922589165082574,
+    "dark_reduction_db": 17.700597688120922,
+    "flat_residual_pct": null
+   },
+   {
+    "frame": "Dark_09.raw",
+    "exit": 0,
+    "dark_bias_adu": 0.46790710199171087,
+    "dark_bias_signed_adu": -1.7533535074835065,
+    "dark_reduction_db": 17.531228691118947,
+    "flat_residual_pct": null
+   }
+  ],
+  "flat": [
+   {
+    "frame": "Bright_14.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.6409529054666727
+   },
+   {
+    "frame": "Bright_15.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.6356646930564868
+   }
+  ]
+ },
+ {
+  "set": "s020",
+  "gen_exit": 0,
+  "dark": [
+   {
+    "frame": "Dark_08.raw",
+    "exit": 0,
+    "dark_bias_adu": 0.01648511505397874,
+    "dark_bias_signed_adu": -6.30681519191934,
+    "dark_reduction_db": 34.61598636288943,
+    "flat_residual_pct": null
+   },
+   {
+    "frame": "Dark_09.raw",
+    "exit": 0,
+    "dark_bias_adu": 0.837997312045598,
+    "dark_bias_signed_adu": -0.7335408850835398,
+    "dark_reduction_db": 16.552647171400434,
+    "flat_residual_pct": null
+   }
+  ],
+  "flat": [
+   {
+    "frame": "Bright_24.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.6885167560783145
+   },
+   {
+    "frame": "Bright_25.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.6900053701712932
+   }
+  ]
+ },
+ {
+  "set": "s021",
+  "gen_exit": 0,
+  "dark": [
+   {
+    "frame": "Dark_08.raw",
+    "exit": 0,
+    "dark_bias_adu": 1.7308287556293387,
+    "dark_bias_signed_adu": 1.009797446220062,
+    "dark_reduction_db": 13.779334779136798,
+    "flat_residual_pct": null
+   },
+   {
+    "frame": "Dark_09.raw",
+    "exit": 0,
+    "dark_bias_adu": 1.7407812536887914,
+    "dark_bias_signed_adu": 1.0191522332750902,
+    "dark_reduction_db": 13.736014702749458,
+    "flat_residual_pct": null
+   }
+  ],
+  "flat": [
+   {
+    "frame": "Bright_24.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.6965340750377367
+   },
+   {
+    "frame": "Bright_25.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.8160613206184784
+   }
+  ]
+ },
+ {
+  "set": "s023",
+  "gen_exit": 0,
+  "dark": [
+   {
+    "frame": "Dark_08.raw",
+    "exit": 0,
+    "dark_bias_adu": 2.0282380386575616,
+    "dark_bias_signed_adu": 1.445632578272232,
+    "dark_reduction_db": 13.3452269073005,
+    "flat_residual_pct": null
+   },
+   {
+    "frame": "Dark_09.raw",
+    "exit": 0,
+    "dark_bias_adu": 1.668124875050822,
+    "dark_bias_signed_adu": 0.8767817531222554,
+    "dark_reduction_db": 13.95639693658407,
+    "flat_residual_pct": null
+   }
+  ],
+  "flat": [
+   {
+    "frame": "Bright_25.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.6857089887710035
+   },
+   {
+    "frame": "Bright_26.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.6903781393683585
+   }
+  ]
+ },
+ {
+  "set": "s025",
+  "gen_exit": 0,
+  "dark": [
+   {
+    "frame": "Dark_09.raw",
+    "exit": 0,
+    "dark_bias_adu": 0.7551761009358247,
+    "dark_bias_signed_adu": -1.1225623013182642,
+    "dark_reduction_db": 23.26797325267577,
+    "flat_residual_pct": null
+   },
+   {
+    "frame": "Dark_10.raw",
+    "exit": 0,
+    "dark_bias_adu": 0.7872904274306587,
+    "dark_bias_signed_adu": -1.0417363872036476,
+    "dark_reduction_db": 23.08095621051128,
+    "flat_residual_pct": null
+   }
+  ],
+  "flat": [
+   {
+    "frame": "Bright_29.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.6380485086811931
+   },
+   {
+    "frame": "Bright_30.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.6318783665681352
+   }
+  ]
+ },
+ {
+  "set": "s026",
+  "gen_exit": 0,
+  "dark": [
+   {
+    "frame": "Dark_09.raw",
+    "exit": 0,
+    "dark_bias_adu": 1.2776433902717332,
+    "dark_bias_signed_adu": 0.08535420194058103,
+    "dark_reduction_db": 20.98315528538583,
+    "flat_residual_pct": null
+   },
+   {
+    "frame": "Dark_10.raw",
+    "exit": 0,
+    "dark_bias_adu": 0.7541047543541086,
+    "dark_bias_signed_adu": -1.1270729350402244,
+    "dark_reduction_db": 23.234615595091253,
+    "flat_residual_pct": null
+   }
+  ],
+  "flat": [
+   {
+    "frame": "Bright_29.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.6397831963643994
+   },
+   {
+    "frame": "Bright_30.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.6316217726482338
+   }
+  ]
+ },
+ {
+  "set": "s029",
+  "gen_exit": 0,
+  "dark": [
+   {
+    "frame": "Dark_08.raw",
+    "exit": 0,
+    "dark_bias_adu": 2.1873784941258805,
+    "dark_bias_signed_adu": 1.7271032677846838,
+    "dark_reduction_db": 18.54782657069504,
+    "flat_residual_pct": null
+   },
+   {
+    "frame": "Dark_09.raw",
+    "exit": 0,
+    "dark_bias_adu": 1.9085670847911105,
+    "dark_bias_signed_adu": 1.3343039671498373,
+    "dark_reduction_db": 19.047073260623655,
+    "flat_residual_pct": null
+   }
+  ],
+  "flat": [
+   {
+    "frame": "Bright_14.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.64226176867889
+   },
+   {
+    "frame": "Bright_15.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.6412458821569179
+   }
+  ]
+ },
+ {
+  "set": "s031",
+  "gen_exit": 0,
+  "dark": [
+   {
+    "frame": "Dark_08.raw",
+    "exit": 0,
+    "dark_bias_adu": 0.8495754348722357,
+    "dark_bias_signed_adu": -0.6206636957290332,
+    "dark_reduction_db": 18.3928095732888,
+    "flat_residual_pct": null
+   },
+   {
+    "frame": "Dark_09.raw",
+    "exit": 0,
+    "dark_bias_adu": 0.834795278231371,
+    "dark_bias_signed_adu": -0.6494657779330991,
+    "dark_reduction_db": 18.515809476265545,
+    "flat_residual_pct": null
+   }
+  ],
+  "flat": [
+   {
+    "frame": "Bright_24.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.6958058164971126
+   },
+   {
+    "frame": "Bright_25.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.6943122905104834
+   }
+  ]
+ },
+ {
+  "set": "s032",
+  "gen_exit": 0,
+  "dark": [
+   {
+    "frame": "Dark_08.raw",
+    "exit": 0,
+    "dark_bias_adu": 0.17109950591100637,
+    "dark_bias_signed_adu": -3.2812770016632844,
+    "dark_reduction_db": 29.231500050914946,
+    "flat_residual_pct": null
+   },
+   {
+    "frame": "Dark_09.raw",
+    "exit": 0,
+    "dark_bias_adu": 2.1745806005918924,
+    "dark_bias_signed_adu": 1.6967723027315598,
+    "dark_reduction_db": 18.645406011243292,
+    "flat_residual_pct": null
+   }
+  ],
+  "flat": [
+   {
+    "frame": "Bright_24.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.6889984427016862
+   },
+   {
+    "frame": "Bright_25.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.6883008897239806
+   }
+  ]
+ },
+ {
+  "set": "s033",
+  "gen_exit": 0,
+  "dark": [
+   {
+    "frame": "Dark_08.raw",
+    "exit": 0,
+    "dark_bias_adu": 2.883659539571552,
+    "dark_bias_signed_adu": 2.60996892083634,
+    "dark_reduction_db": 14.253560037696342,
+    "flat_residual_pct": null
+   },
+   {
+    "frame": "Dark_09.raw",
+    "exit": 0,
+    "dark_bias_adu": 2.6585743114796125,
+    "dark_bias_signed_adu": 2.3306292823503387,
+    "dark_reduction_db": 14.488468640271408,
+    "flat_residual_pct": null
+   }
+  ],
+  "flat": [
+   {
+    "frame": "Bright_24.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.725535695316733
+   },
+   {
+    "frame": "Bright_25.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.7324128812177154
+   }
+  ]
+ },
+ {
+  "set": "s047",
+  "gen_exit": 0,
+  "dark": [
+   {
+    "frame": "Dark_08.raw",
+    "exit": 0,
+    "dark_bias_adu": 1.1160799519737037,
+    "dark_bias_signed_adu": -0.09158448710714828,
+    "dark_reduction_db": 15.191869948646255,
+    "flat_residual_pct": null
+   },
+   {
+    "frame": "Dark_09.raw",
+    "exit": 0,
+    "dark_bias_adu": 0.6015022450109974,
+    "dark_bias_signed_adu": -1.3868748080360922,
+    "dark_reduction_db": 17.877827513262133,
+    "flat_residual_pct": null
+   }
+  ],
+  "flat": [
+   {
+    "frame": "Bright_14.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.6496804441136212
+   },
+   {
+    "frame": "Bright_15.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.6493693019604521
+   }
+  ]
+ },
+ {
+  "set": "s049",
+  "gen_exit": 0,
+  "dark": [
+   {
+    "frame": "Dark_08.raw",
+    "exit": 0,
+    "dark_bias_adu": 1.1178957691290294,
+    "dark_bias_signed_adu": -0.431520339589131,
+    "dark_reduction_db": 15.92276420418903,
+    "flat_residual_pct": null
+   },
+   {
+    "frame": "Dark_09.raw",
+    "exit": 0,
+    "dark_bias_adu": 1.1490202156537312,
+    "dark_bias_signed_adu": -0.36988667076917053,
+    "dark_reduction_db": 15.730383390700336,
+    "flat_residual_pct": null
+   }
+  ],
+  "flat": [
+   {
+    "frame": "Bright_08.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 1.1223437368566547
+   },
+   {
+    "frame": "Bright_09.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 1.114498539893564
+   }
+  ]
+ },
+ {
+  "set": "s050",
+  "gen_exit": 0,
+  "dark": [
+   {
+    "frame": "Dark_08.raw",
+    "exit": 0,
+    "dark_bias_adu": 0.002022997363973132,
+    "dark_bias_signed_adu": -10.414066697045609,
+    "dark_reduction_db": 39.996737923999135,
+    "flat_residual_pct": null
+   },
+   {
+    "frame": "Dark_09.raw",
+    "exit": 0,
+    "dark_bias_adu": 0.006397267822168393,
+    "dark_bias_signed_adu": -9.638457509363219,
+    "dark_reduction_db": 38.217711458831886,
+    "flat_residual_pct": null
+   }
+  ],
+  "flat": [
+   {
+    "frame": "Bright_18.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 1.1213676815998834
+   },
+   {
+    "frame": "Bright_19.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 1.1222225967818142
+   }
+  ]
+ },
+ {
+  "set": "s053",
+  "gen_exit": 0,
+  "dark": [
+   {
+    "frame": "Dark_08.raw",
+    "exit": 0,
+    "dark_bias_adu": 0.7405452731093606,
+    "dark_bias_signed_adu": -1.0800341612239526,
+    "dark_reduction_db": 16.30646338627042,
+    "flat_residual_pct": null
+   },
+   {
+    "frame": "Dark_09.raw",
+    "exit": 0,
+    "dark_bias_adu": 0.7082851360766143,
+    "dark_bias_signed_adu": -1.1762279360613395,
+    "dark_reduction_db": 16.483921293772383,
+    "flat_residual_pct": null
+   }
+  ],
+  "flat": [
+   {
+    "frame": "Bright_14.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.635770994290779
+   },
+   {
+    "frame": "Bright_15.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.6332981453265626
+   }
+  ]
+ },
+ {
+  "set": "s055",
+  "gen_exit": 0,
+  "dark": [
+   {
+    "frame": "Dark_08.raw",
+    "exit": 0,
+    "dark_bias_adu": 0.9516671493717531,
+    "dark_bias_signed_adu": -0.5648480200781048,
+    "dark_reduction_db": 17.642286711772922,
+    "flat_residual_pct": null
+   },
+   {
+    "frame": "Dark_09.raw",
+    "exit": 0,
+    "dark_bias_adu": 0.9284839205308182,
+    "dark_bias_signed_adu": -0.6120769052103137,
+    "dark_reduction_db": 17.7833597472974,
+    "flat_residual_pct": null
+   }
+  ],
+  "flat": [
+   {
+    "frame": "Bright_22.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.698356621872727
+   },
+   {
+    "frame": "Bright_23.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.6976749688442065
+   }
+  ]
+ },
+ {
+  "set": "s058",
+  "gen_exit": 0,
+  "dark": [
+   {
+    "frame": "Dark_08.raw",
+    "exit": 0,
+    "dark_bias_adu": 1.9971059654349055,
+    "dark_bias_signed_adu": 1.325025123458189,
+    "dark_reduction_db": 13.08134264371952,
+    "flat_residual_pct": null
+   },
+   {
+    "frame": "Dark_09.raw",
+    "exit": 0,
+    "dark_bias_adu": 0.11783664003321688,
+    "dark_bias_signed_adu": -4.3136605764351,
+    "dark_reduction_db": 25.390649753482464,
+    "flat_residual_pct": null
+   }
+  ],
+  "flat": [
+   {
+    "frame": "Bright_23.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.6836111411532305
+   },
+   {
+    "frame": "Bright_24.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.6840932390722884
+   }
+  ]
+ },
+ {
+  "set": "s065",
+  "gen_exit": 0,
+  "dark": [
+   {
+    "frame": "Dark_09.raw",
+    "exit": 0,
+    "dark_bias_adu": 0.7247329172695087,
+    "dark_bias_signed_adu": -1.4037899253079655,
+    "dark_reduction_db": 22.27965098741674,
+    "flat_residual_pct": null
+   },
+   {
+    "frame": "Dark_10.raw",
+    "exit": 0,
+    "dark_bias_adu": 1.130996621349246,
+    "dark_bias_signed_adu": -0.3680170768017881,
+    "dark_reduction_db": 20.374488945846146,
+    "flat_residual_pct": null
+   }
+  ],
+  "flat": [
+   {
+    "frame": "Bright_09.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 1.1350390548643594
+   },
+   {
+    "frame": "Bright_10.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 1.1403328238405068
+   }
+  ]
+ },
+ {
+  "set": "s066",
+  "gen_exit": 13
+ },
+ {
+  "set": "s069",
+  "gen_exit": 0,
+  "dark": [
+   {
+    "frame": "Dark_09.raw",
+    "exit": 0,
+    "dark_bias_adu": 1.001383177365392,
+    "dark_bias_signed_adu": -0.6587789350148598,
+    "dark_reduction_db": 20.805564482005078,
+    "flat_residual_pct": null
+   },
+   {
+    "frame": "Dark_10.raw",
+    "exit": 0,
+    "dark_bias_adu": 0.9823699582693162,
+    "dark_bias_signed_adu": -0.7201443109409263,
+    "dark_reduction_db": 20.863208610246957,
+    "flat_residual_pct": null
+   }
+  ],
+  "flat": [
+   {
+    "frame": "Bright_09.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 1.1296609897791006
+   },
+   {
+    "frame": "Bright_10.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 1.1202107938809462
+   }
+  ]
+ },
+ {
+  "set": "s070",
+  "gen_exit": 0,
+  "dark": [
+   {
+    "frame": "Dark_09.raw",
+    "exit": 0,
+    "dark_bias_adu": 1.0584263534344818,
+    "dark_bias_signed_adu": -0.6222385772380554,
+    "dark_reduction_db": 20.74493420967237,
+    "flat_residual_pct": null
+   },
+   {
+    "frame": "Dark_10.raw",
+    "exit": 0,
+    "dark_bias_adu": 0.8474700670861539,
+    "dark_bias_signed_adu": -1.1504026187513618,
+    "dark_reduction_db": 21.631525233633887,
+    "flat_residual_pct": null
+   }
+  ],
+  "flat": [
+   {
+    "frame": "Bright_39.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.449924507440587
+   },
+   {
+    "frame": "Bright_40.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.4498853893939261
+   }
+  ]
+ },
+ {
+  "set": "s073",
+  "gen_exit": 0,
+  "dark": [
+   {
+    "frame": "Dark_08.raw",
+    "exit": 0,
+    "dark_bias_adu": 1.4658238323210055,
+    "dark_bias_signed_adu": 0.5532443265620437,
+    "dark_reduction_db": 19.185601394604483,
+    "flat_residual_pct": null
+   },
+   {
+    "frame": "Dark_09.raw",
+    "exit": 0,
+    "dark_bias_adu": 1.4534069711838777,
+    "dark_bias_signed_adu": 0.5269311177725784,
+    "dark_reduction_db": 19.203735788416363,
+    "flat_residual_pct": null
+   }
+  ],
+  "flat": [
+   {
+    "frame": "Bright_14.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.6414380618869646
+   },
+   {
+    "frame": "Bright_15.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.632066199131999
+   }
+  ]
+ },
+ {
+  "set": "s075",
+  "gen_exit": 0,
+  "dark": [
+   {
+    "frame": "Dark_08.raw",
+    "exit": 0,
+    "dark_bias_adu": 0.23367055898741051,
+    "dark_bias_signed_adu": -2.961345628436917,
+    "dark_reduction_db": 21.560361759347764,
+    "flat_residual_pct": null
+   },
+   {
+    "frame": "Dark_09.raw",
+    "exit": 0,
+    "dark_bias_adu": 0.19462465852022706,
+    "dark_bias_signed_adu": -3.236917037029085,
+    "dark_reduction_db": 22.480495931262485,
+    "flat_residual_pct": null
+   }
+  ],
+  "flat": [
+   {
+    "frame": "Bright_14.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.6038731950624405
+   },
+   {
+    "frame": "Bright_15.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.6070641497799666
+   }
+  ]
+ },
+ {
+  "set": "s078",
+  "gen_exit": 0,
+  "dark": [
+   {
+    "frame": "Dark_08.raw",
+    "exit": 0,
+    "dark_bias_adu": 3.033429578398781,
+    "dark_bias_signed_adu": 2.7426052213146175,
+    "dark_reduction_db": 12.010962936916297,
+    "flat_residual_pct": null
+   },
+   {
+    "frame": "Dark_09.raw",
+    "exit": 0,
+    "dark_bias_adu": 3.3535086268061107,
+    "dark_bias_signed_adu": 3.122831756982389,
+    "dark_reduction_db": 11.69779469371371,
+    "flat_residual_pct": null
+   }
+  ],
+  "flat": [
+   {
+    "frame": "Bright_14.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.6228477106112663
+   },
+   {
+    "frame": "Bright_15.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.6266571458926742
+   }
+  ]
+ },
+ {
+  "set": "s080",
+  "gen_exit": 0,
+  "dark": [
+   {
+    "frame": "Dark_08.raw",
+    "exit": 0,
+    "dark_bias_adu": 0.6369533010998714,
+    "dark_bias_signed_adu": -1.2167821492286228,
+    "dark_reduction_db": 19.565256388097833,
+    "flat_residual_pct": null
+   },
+   {
+    "frame": "Dark_09.raw",
+    "exit": 0,
+    "dark_bias_adu": 0.6502268370607028,
+    "dark_bias_signed_adu": -1.168747384393304,
+    "dark_reduction_db": 19.499289830005008,
+    "flat_residual_pct": null
+   }
+  ],
+  "flat": [
+   {
+    "frame": "Bright_14.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.4899593777968379
+   },
+   {
+    "frame": "Bright_15.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.4894220217004435
+   }
+  ]
+ },
+ {
+  "set": "s083",
+  "gen_exit": 0,
+  "dark": [
+   {
+    "frame": "Dark_08.raw",
+    "exit": 0,
+    "dark_bias_adu": 0.8572581857458619,
+    "dark_bias_signed_adu": -0.6139574106941529,
+    "dark_reduction_db": 15.663627141423962,
+    "flat_residual_pct": null
+   },
+   {
+    "frame": "Dark_09.raw",
+    "exit": 0,
+    "dark_bias_adu": 0.7957675534523667,
+    "dark_bias_signed_adu": -0.7736664510766968,
+    "dark_reduction_db": 16.042171133159453,
+    "flat_residual_pct": null
+   }
+  ],
+  "flat": [
+   {
+    "frame": "Bright_14.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.4767322411295867
+   },
+   {
+    "frame": "Bright_15.raw",
+    "exit": 0,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "flat_residual_pct": 0.47630004422895517
+   }
+  ]
+ }
+]

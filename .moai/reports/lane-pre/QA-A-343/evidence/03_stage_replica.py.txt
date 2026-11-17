@@ -1,0 +1,70 @@
+# QA-A-343 stage attribution by an exact numpy replica of flagRobustZ for the dark-mean feature (xpe_bpm_v2.cpp:370-388, removeRowColumn
+# :259-302, separableMedian :166-190, slidingMedian :236-250, blockScale :305-320, scaleAt :324-334). Read-only: no source change, no build.
+# Replica is checked against the instrumented values of QA-A-328 s18.2 (r and s of the 11 pixels, clean and injected) before it is used.
+# Stages swapped one at a time: the stage's output (row/column components, background, block scale) is taken from the CLEAN run while the
+# rest comes from the INJECTED run; the stage whose clean output removes the change of |r/s| is the stage that carries it.
+import numpy as np
+from numpy.lib.stride_tricks import sliding_window_view as swv
+INJ='D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/frames'; CAL='D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles'
+W=3072; WIN=17; R=WIN//2; BLK=64; X0,Y0=6,2; w,h=3065,3069   # margins 6,2,1,1 (runWithMargins)
+def D(folder):
+    a=np.zeros((W,W),np.float64)
+    for k in range(8,15): a+=np.fromfile(f'{folder}/Dark_{k:02d}.raw',dtype=np.uint16).reshape(W,W)
+    return (a/7).astype(np.float32)[Y0:Y0+h, X0:X0+w].copy()
+def refl(n): return np.r_[np.arange(R,0,-1), np.arange(n), np.arange(n-2,n-2-R,-1)]
+def med_axis(a, axis):   # sliding median with reflected borders (slidingMedian / separable passes); upper median of 17 = index 8
+    out=np.empty_like(a)
+    if axis==1:
+        idx=refl(a.shape[1]); p=a[:,idx]
+        for y0 in range(0,a.shape[0],128):
+            v=swv(p[y0:y0+128],WIN,axis=1); out[y0:y0+128]=np.partition(v,R,axis=-1)[...,R]
+    else:
+        idx=refl(a.shape[0]); p=a[idx,:]
+        for x0 in range(0,a.shape[1],128):
+            v=swv(p[:,x0:x0+128],WIN,axis=0); out[:,x0:x0+128]=np.partition(v,R,axis=-1)[...,R]
+    return out
+def row_ref(f):  # median of the WIN rows around the row along the column, window moved inside (not reflected)
+    out=np.empty_like(f); v=swv(f,WIN,axis=0)            # rows k..k+16 -> shape (h-16, w, 17)
+    inner=np.partition(v,R,axis=-1)[...,R]
+    for y in range(h):
+        y0=min(max(y-R,0),h-WIN); out[y]=inner[y0]
+    return out
+def upmed(a): return np.partition(a, a.size//2)[a.size//2]
+def stages(f, override=None):
+    o=override or {}
+    f=f.copy(); ref=row_ref(f); comp=f-ref
+    ce=np.array([upmed(comp[y,0::2].copy()) for y in range(h)],np.float32); co=np.array([upmed(comp[y,1::2].copy()) for y in range(h)],np.float32)
+    if 'row' in o: ce,co=o['row']
+    rowc=(ce,co); f[:,0::2]-=ce[:,None]; f[:,1::2]-=co[:,None]
+    t=med_axis(f,1); colc=np.array([upmed((f[:,x]-t[:,x]).copy()) for x in range(w)],np.float32)
+    if 'col' in o: colc=o['col']
+    f-=colc[None,:]
+    bg=med_axis(med_axis(f,1),0)
+    if 'bg' in o: bg=o['bg']
+    r=f-bg
+    nbx,nby=(w+BLK-1)//BLK,(h+BLK-1)//BLK; sig=np.zeros((nby,nbx),np.float32)
+    for by in range(nby):
+        for bx in range(nbx): sig[by,bx]=np.float32(1.4826*upmed(np.abs(r[by*BLK:(by+1)*BLK, bx*BLK:(bx+1)*BLK]).ravel().copy()))
+    if 'sig' in o: sig=o['sig']
+    return dict(row=rowc,col=colc,bg=bg,r=r,sig=sig)
+def scale_at(sig,x,y):
+    nby,nbx=sig.shape
+    fx=min(max((x+0.5)/BLK-0.5,0.0),nbx-1); fy=min(max((y+0.5)/BLK-0.5,0.0),nby-1)
+    x0,y0=int(fx),int(fy); x1,y1=min(x0+1,nbx-1),min(y0+1,nby-1); tx,ty=fx-x0,fy-y0
+    return (1-ty)*((1-tx)*sig[y0,x0]+tx*sig[y0,x1])+ty*((1-tx)*sig[y1,x0]+tx*sig[y1,x1])
+PX=[(1925,180),(1475,440),(199,796),(1246,1253),(988,1440),(1119,1588),(2707,1590),(196,1612),(2670,1896),(2118,2672),(305,2871)]
+LAM=5.315594539
+dc,di=D(CAL),D(INJ)
+C=stages(dc); I=stages(di)
+runs={'inj':I,'clean':C}
+for k in ('row','col','bg','sig'): runs['inj+clean_'+k]=stages(di,{k:C[k]})
+print('replica check vs QA-A-328 s18.2 (r, s): see columns inj/clean; s18.2 inj r 1925,180 = -15.570 s 2.9185; clean r -15.429 s 2.9188')
+print('x\ty\t'+'\t'.join(f'{k}:r\t{k}:s\t{k}:|r/s|>lam' for k in runs))
+cnt={k:0 for k in runs}
+for x,y in PX:
+    xi,yi=x-X0,y-Y0; cells=[]
+    for k,S in runs.items():
+        r=float(S['r'][yi,xi]); s=max(float(scale_at(S['sig'],xi,yi)),1e-6); hit=abs(r)>LAM*s; cnt[k]+=hit
+        cells.append(f'{r:.3f}\t{s:.4f}\t{int(hit)}')
+    print(f'{x}\t{y}\t'+'\t'.join(cells))
+print('flagged of 11:', cnt)

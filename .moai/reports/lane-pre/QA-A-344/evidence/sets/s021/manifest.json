@@ -1,0 +1,106 @@
+{
+  "generator": "xpe_calib_fixture_gen",
+  "mode": "frames",
+  "width": 3072,
+  "height": 3072,
+  "expiry_epoch_ms": 4102444800000,
+  "frames": {"dark": 7, "bright": 8, "bpm_bright": 20},
+  "settings": {
+    "offset": {"exposure_ms": 100, "temperature_c": 25},
+    "gain_dark_reference": "mean",
+    "bpm": {"lambda_dark": 8.0, "mask_size_dark": 32, "mask_size_bright": 128, "tolerance_pct": 0.070, "min_frames_dark": 5, "min_frames_bright": 10},
+    "saturated_share_limit": 0.0010,
+    "gain_dose_ratio": 1.0164,
+    "gain_dose_ratio_limit": 1.25,
+    "gain_dose_basis": "mean over pixels of max(0, bright - gain dark reference); reference: mean"
+  },
+  "inputs": [
+    {"role": "dark_excluded_first", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Dark_00.raw", "sha256": "1748563b32ee616b913d54bc21bda9d980b00fb185d7f4550598dce1125df260", "mean": 9392.280},
+    {"role": "dark", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Dark_01.raw", "sha256": "9207c5236328d9c6410adb6ede1d36e1ca346b2e402c69661c4d96cb98438407", "mean": 9525.350},
+    {"role": "dark", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Dark_02.raw", "sha256": "a350dbd78705f0900b7a2bbc622e2eeacf44eca3ac9261b2da79bb7f1951c108", "mean": 9526.922},
+    {"role": "dark", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Dark_03.raw", "sha256": "9038587568fd01365ad94d8c109f17947a288175ff16b94f81039d162f61da62", "mean": 9521.739},
+    {"role": "dark", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Dark_04.raw", "sha256": "1ac801bffbda12e79627ddd3f3bdfca700efd311edb64e30af6c3a7a4d2e95c4", "mean": 9521.823},
+    {"role": "dark", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Dark_05.raw", "sha256": "5c855f95c250551f8d11efbcdd61be71d8d7ae6252129c954c8f6c2e07f029b4", "mean": 9527.623},
+    {"role": "dark", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Dark_06.raw", "sha256": "53989bd4660850c4bb99d73db45fe0bc4f984c0e1fad2c205f740fbb942bc7ca", "mean": 9527.396},
+    {"role": "dark", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Dark_07.raw", "sha256": "1ec879ef934ebe5523f03ad87dbfea26376760398c2c92e177bc0fe25f4d3ff1", "mean": 9527.593},
+    {"role": "bright_and_bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Bright_16.raw", "sha256": "efd1bc307a2dc7ae49cf37e6b3cfefffd531a61e2a4470ce585bcd6a0636162c", "mean": 17294.333},
+    {"role": "bright_and_bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Bright_17.raw", "sha256": "cc770a1eed392f963a8a5278f9275a2e15c771bd69bda8198e4f603e3b6b2ba6", "mean": 17225.882},
+    {"role": "bright_and_bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Bright_18.raw", "sha256": "73a7a118bbbe491eff8bda6ce64c9023542de77231dbb2ec08ab69cce60996bd", "mean": 17228.574},
+    {"role": "bright_and_bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Bright_19.raw", "sha256": "4239dceae799511703fb52628b23da0822502580d03d457624bab47002e40f06", "mean": 17213.015},
+    {"role": "bright_and_bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Bright_20.raw", "sha256": "77818b70ce1c526af62d5964c89d17831c2e4a6c5556474567c0a3fcdf17bd36", "mean": 17339.343},
+    {"role": "bright_and_bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Bright_21.raw", "sha256": "5148043f0e3242ef5de1cd41296bb3c3a5fa7873dee607c0fafc05eec7451edc", "mean": 17226.060},
+    {"role": "bright_and_bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Bright_22.raw", "sha256": "582f8d31fe7849022947e8256a7c9f43e3b1a1c17838a74c4934b2667190e22a", "mean": 17299.629},
+    {"role": "bright_and_bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Bright_23.raw", "sha256": "6e574c329ee820ec054f6a50e6f7fc4ec07b59e162457253d433d1559708c535", "mean": 17245.620},
+    {"role": "bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Bright_10.raw", "sha256": "8d18ac72688a0a5be19057b493919828bbc8000ee65fe231fe0c717886391591", "mean": 11891.646},
+    {"role": "bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Bright_11.raw", "sha256": "9b9a608fa55b900a3784899a1a551ea450e93b91a739a7e555ffbe8076412c6d", "mean": 11925.916},
+    {"role": "bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Bright_12.raw", "sha256": "c4df493624c5100455ced1a9d5280adbf67eb798d6601a8d39bc3a4d907510c5", "mean": 11936.839},
+    {"role": "bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Bright_13.raw", "sha256": "c3e1bd0ea6467911681d1757ac95c8c6bf40d3dc935bcdd48bf556e46696c889", "mean": 14422.043},
+    {"role": "bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Bright_14.raw", "sha256": "fb0bd4eb2ba795cc5ef9d504ea5fb752257c3c57937fb562e18f051fce297708", "mean": 14415.334},
+    {"role": "bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Bright_15.raw", "sha256": "4c138daa8dcacfb451fd37df402ab5c860f60d5fb33941dd9b06e2c0791972bd", "mean": 14462.392},
+    {"role": "bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Bright_26.raw", "sha256": "e811d26e02944b99a76079c2e67ebf87ab525a0fadc39aad71e0db06b39eabad", "mean": 25090.625},
+    {"role": "bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Bright_27.raw", "sha256": "d2a5960159a229daf8c8414934e7e66c24b7386678de999fdd14480c493ee323", "mean": 25013.817},
+    {"role": "bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Bright_28.raw", "sha256": "c768c68ce7fc9b090f783001dd45796dc3da741275883d268bba8b5c49360ec3", "mean": 25026.079},
+    {"role": "bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Bright_29.raw", "sha256": "9c566cacf8b5cb81068e67c7d62e92f71b08d2c7022d25abd95120a193cd369f", "mean": 34644.576},
+    {"role": "bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Bright_30.raw", "sha256": "fac925dee7c1aec9c09aa86ec8471bdc73fb7b15175dbbb282f6d9d7a18d56ca", "mean": 34447.107},
+    {"role": "bpm_bright", "path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Bright_31.raw", "sha256": "ffd038d845b4b2b44af97b42255f42480825c55d2a8728a3f61534fb77f6d32b", "mean": 34259.553}
+  ],
+  "dark_policy": {
+    "first_dark_excluded": true,
+    "one_list_for_all_stages": true,
+    "stages_on_the_used_list": ["offset", "gain_dark_reference", "defect_map"],
+    "gain_dark_reference": "the mean of the used darks (same list)",
+    "given": [
+      {"path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Dark_00.raw", "sha256": "1748563b32ee616b913d54bc21bda9d980b00fb185d7f4550598dce1125df260"},
+      {"path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Dark_01.raw", "sha256": "9207c5236328d9c6410adb6ede1d36e1ca346b2e402c69661c4d96cb98438407"},
+      {"path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Dark_02.raw", "sha256": "a350dbd78705f0900b7a2bbc622e2eeacf44eca3ac9261b2da79bb7f1951c108"},
+      {"path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Dark_03.raw", "sha256": "9038587568fd01365ad94d8c109f17947a288175ff16b94f81039d162f61da62"},
+      {"path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Dark_04.raw", "sha256": "1ac801bffbda12e79627ddd3f3bdfca700efd311edb64e30af6c3a7a4d2e95c4"},
+      {"path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Dark_05.raw", "sha256": "5c855f95c250551f8d11efbcdd61be71d8d7ae6252129c954c8f6c2e07f029b4"},
+      {"path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Dark_06.raw", "sha256": "53989bd4660850c4bb99d73db45fe0bc4f984c0e1fad2c205f740fbb942bc7ca"},
+      {"path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Dark_07.raw", "sha256": "1ec879ef934ebe5523f03ad87dbfea26376760398c2c92e177bc0fe25f4d3ff1"}
+    ],
+    "used": [
+      {"path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Dark_01.raw", "sha256": "9207c5236328d9c6410adb6ede1d36e1ca346b2e402c69661c4d96cb98438407"},
+      {"path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Dark_02.raw", "sha256": "a350dbd78705f0900b7a2bbc622e2eeacf44eca3ac9261b2da79bb7f1951c108"},
+      {"path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Dark_03.raw", "sha256": "9038587568fd01365ad94d8c109f17947a288175ff16b94f81039d162f61da62"},
+      {"path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Dark_04.raw", "sha256": "1ac801bffbda12e79627ddd3f3bdfca700efd311edb64e30af6c3a7a4d2e95c4"},
+      {"path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Dark_05.raw", "sha256": "5c855f95c250551f8d11efbcdd61be71d8d7ae6252129c954c8f6c2e07f029b4"},
+      {"path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Dark_06.raw", "sha256": "53989bd4660850c4bb99d73db45fe0bc4f984c0e1fad2c205f740fbb942bc7ca"},
+      {"path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Dark_07.raw", "sha256": "1ec879ef934ebe5523f03ad87dbfea26376760398c2c92e177bc0fe25f4d3ff1"}
+    ]
+  },
+  "defect_pixels": 1346,
+  "dark_selection": {
+    "rule": "first frame always; then the leading run with |m_k - R| > T; R = median of the last ceil(N/2) means (even count: mean of the middle two)",
+    "roi_ltrb": [6, 2, 1, 1],
+    "T": 20.0,
+    "R": 9527.268,
+    "m": [9392.072, 9525.125, 9526.697, 9521.513, 9521.597, 9527.396, 9527.170, 9527.366],
+    "excluded": [
+      {"path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경/Dark_00.raw", "why": "first frame (always)"}
+    ],
+    "verdict": "used",
+    "dark_order": "as given, not checked"
+  },
+  "defect_format": {
+    "xcal_version": 2,
+    "method": "xpe_bpm_generate_v2 + xpe_bpm_find_lines (line mask merged into the pixel map), blobs by xpe_bpm_blobs",
+    "skip_first_dark": false,
+    "first_dark_excluded_by": "generator (once, before every stage)",
+    "margins_ltrb": [6, 2, 1, 1],
+    "dark_frames_used": 7,
+    "pixels_outside_imaging_area": 30699,
+    "line_groups": 0,
+    "line_pixels": 0,
+    "panel_reject": 0,
+    "blobs": 1326,
+    "blobs_listed": 1326,
+    "unconfirmed_candidates": 0,
+    "limits": "the BRIGHT_NOISE pixel bit near a line is biased (the local expectation is contaminated by the line): it is not evidence for a line pixel; segment ends at a crossing may include pixels of the crossing line; the unconfirmed candidates are a diagnostic appendix and are not part of the defect layer"
+  },
+  "files": {
+    "offset.xcal": "333290810f69c41bce42da9f9b24f9916ec6f9488885ce061bafc0d1ae5d02c7",
+    "gain.xcal": "a0e5cc79f7253e5ca0a037df31ee097a3830fee61316a69206f27747311a5e89",
+    "defect.xcal": "330b9837b8f75b558e1fed5cf39998da2014013af018595617e96a9e4f75c0a3"
+  }
+}

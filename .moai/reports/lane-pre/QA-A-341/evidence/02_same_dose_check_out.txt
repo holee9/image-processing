@@ -1,0 +1,22 @@
+side	set	frame_a	frame_b	mean_a	mean_b	ratio_b_over_a	sha_ok	verdict
+dev	G1_0412_plain_0	Bright_14.raw	Bright_15.raw	18680.07	18605.41	0.99600	True	ok
+dev	G1_0427_AED_2	Bright_24.raw	Bright_25.raw	17316.12	17354.75	1.00223	True	ok
+dev	G1_0427_MANUAL_4	Bright_25.raw	Bright_26.raw	17555.38	17630.02	1.00425	True	ok
+val	G2_0412_plain_18	Bright_14.raw	Bright_15.raw	18588.79	18734.27	1.00783	True	ok
+val	G2_0428_AED_20	Bright_24.raw	Bright_25.raw	17346.05	17313.74	0.99814	True	ok
+val	G2_0428_AED-LR_21	Bright_24.raw	Bright_25.raw	17194.81	17222.32	1.00160	True	ok
+val	G2_0429_plain_24	Bright_25.raw	Bright_26.raw	17597.69	17449.06	0.99155	True	ok
+dev	G3_0410_plain_29	Bright_14.raw	Bright_15.raw	18800.31	18927.28	1.00675	True	ok
+dev	G3_0428_AED_31	Bright_24.raw	Bright_25.raw	17408.71	17451.51	1.00246	True	ok
+dev	G3_0428_MANUAL_32	Bright_24.raw	Bright_25.raw	17538.34	17558.12	1.00113	True	ok
+dev	G3_0429_plain_34	Bright_24.raw	Bright_25.raw	17463.52	17474.30	1.00062	True	ok
+val	G4_0410_plain_47	Bright_14.raw	Bright_15.raw	18637.48	18545.33	0.99506	True	ok
+dev	I2_0410_plain_53	Bright_14.raw	Bright_15.raw	19168.32	19311.82	1.00749	True	ok
+dev	I2_0427_AED_55	Bright_22.raw	Bright_23.raw	18056.23	18086.71	1.00169	True	ok
+dev	I2_0427_MANUAL_58	Bright_23.raw	Bright_24.raw	18199.77	18218.07	1.00101	True	ok
+val	F1_0410_plain_73	Bright_14.raw	Bright_15.raw	18830.18	19070.72	1.01277	True	ok
+dev	J4_0410_plain_75	Bright_14.raw	Bright_15.raw	19375.65	19259.34	0.99400	True	ok
+dev	I3_0412_plain_78	Bright_14.raw	Bright_15.raw	19900.65	19921.92	1.00107	True	ok
+val	I4_0426_plain_81	Bright_14.raw	Bright_15.raw	19914.33	19907.99	0.99968	True	ok
+dev	cyan_test	Bright_29.raw	Bright_30.raw	20299.27	20285.89	0.99934	True	ok
+sets 20 outside 1+-0.02: 0

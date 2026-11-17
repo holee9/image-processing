@@ -1,0 +1,3 @@
+parts 142 n0 142 dropped 0 row parts 63 col parts 79
+reading A: admissible dy 0, admissible dx 0, admissible joint shifts (dx,dy)!=(0,0): 0
+reading B: admissible dy 22, admissible dx 0, admissible joint shifts (dx,dy)!=(0,0): 0
