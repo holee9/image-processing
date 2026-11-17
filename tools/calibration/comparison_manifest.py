@@ -17,7 +17,11 @@ Fail-closed rules:
   "unknown" values on both sides are refused, never treated as equal.
 - Fields this schema does not define (origin, spacing, scale, pedestal, crop,
   ...) are refused rather than ignored. Values are compared exactly as stored.
-- Both outputs must use the same dtype; no signedness reinterpretation.
+- Both outputs must use the same dtype; no signedness reinterpretation. One exception:
+  an integer output against a float32 output may be compared when the manifest declares
+  dtype_promotion "float64-lossless". Both sides are then lifted to float64, which holds
+  every uint16/int16/uint32/int32/float32 value exactly (no rounding, no clamping). The
+  promotion is reported in the result; it never covers two different integer dtypes.
 - Only the identity layout (top-left origin, top-to-bottom rows, left-to-right
   columns, identity value transform) is supported, and it must be verified with a
   source on both outputs. Applied offset/gain/defect settings must be verified and
@@ -77,7 +81,12 @@ ROW_CHUNK = 256  # rows per streaming block
 
 # Contract objects: every key is defined; undefined keys are refused at every level.
 # "note" and "calibration_burden" are free-form records and never part of a verdict.
-TOP_KEYS = {"schema", "input", "engines", "roi", "comparison_kind", "calibration_burden", "note"}
+TOP_KEYS = {"schema", "input", "engines", "roi", "comparison_kind", "calibration_burden", "note",
+            "dtype_promotion"}
+# The only declared promotion: lift both outputs to float64. Exact for these pairs only
+# (an integer dtype against float32); two different integer dtypes stay DTYPE_MISMATCH.
+DTYPE_PROMOTION = "float64-lossless"
+PROMOTABLE_INTEGER = {"uint16", "int16", "uint32", "int32"}
 INPUT_KEYS = {"path", "sha256", "correction_state", "mode", "width", "height"}
 CORRECTION_KEYS = {"value", "status", "source"}
 ENGINE_KEYS = {"engine_id", "engine_identity", "execution", "input_sha256", "mode",
@@ -275,8 +284,18 @@ def validate_pair(manifest: dict, base_dir: Path) -> dict:
     if (oa.get("width"), oa.get("height")) != (ob.get("width"), ob.get("height")) or \
             (oa.get("width"), oa.get("height")) != (inp.get("width"), inp.get("height")):
         reasons.append("GEOMETRY_MISMATCH")
+    promo = manifest.get("dtype_promotion")
+    promoted = False
+    if promo is not None and promo != DTYPE_PROMOTION:
+        reasons.append("UNSUPPORTED_DTYPE_PROMOTION")
     if oa.get("dtype") != ob.get("dtype"):
-        reasons.append("DTYPE_MISMATCH")
+        da, db = oa.get("dtype"), ob.get("dtype")
+        if promo == DTYPE_PROMOTION and (
+                (da == "float32" and _one_of(db, PROMOTABLE_INTEGER)) or
+                (db == "float32" and _one_of(da, PROMOTABLE_INTEGER))):
+            promoted = True
+        else:
+            reasons.append("DTYPE_MISMATCH")
     if oa.get("stage") != ob.get("stage"):
         reasons.append("STAGE_MISMATCH")
     if oa.get("units") != ob.get("units"):
@@ -324,6 +343,8 @@ def validate_pair(manifest: dict, base_dir: Path) -> dict:
         "algorithm_attribution": ok and kind == COMMON_KIND,
         "map_equivalence": "byte-identical-only",
         "layout_supported": "identity-only",
+        "dtype_promotion": ({"applied": True, "to": "float64", "A": oa.get("dtype"), "B": ob.get("dtype"),
+                             "lossless": True} if promoted else {"applied": False}),
         "reasons": reasons,
         "blockers": ["VENDOR_LIVE_BLOCKED"],
         "actual_2g_executed": False,
@@ -414,8 +435,13 @@ def compare_raw_pair(manifest: dict, base_dir: Path) -> dict:
     ea, eb = manifest["engines"]["A"], manifest["engines"]["B"]
     roi = manifest["roi"]
     stats = _stream_stats(ea["output"], eb["output"], base_dir, roi)
+    diff_text = "A minus B (A=samsung-2g-x64w imported output, B=new-pre imported output)"
+    if v["dtype_promotion"]["applied"]:
+        diff_text += (f"; stored dtypes differ (A {ea['output']['dtype']}, B {eb['output']['dtype']}), both lifted"
+                      " losslessly to float64 before subtraction: a non-integer difference can come from the"
+                      " float32 side alone and is not an engine-to-engine rounding difference")
     base = {"validation": v, "roi": dict(roi), "units": ea["output"]["units"],
-            "difference": "A minus B (A=samsung-2g-x64w imported output, B=new-pre imported output)"}
+            "dtype_promotion": v["dtype_promotion"], "difference": diff_text}
     if "nonfinite_count" in stats:
         # Plan Task 1: nonfinite values must not produce an accepted numerical comparison.
         return {"status": "refused", "reasons": ["NONFINITE_VALUES"], **base, **stats}

@@ -420,6 +420,59 @@ class ValidatePairTests(Base):
         self.assertTrue(cm.validate_pair(self.m, self.root)["comparable"])
 
 
+
+class DtypePromotionTests(Base):
+    """QA-A-345 draft: uint16 (2G) against float32 (PRE) through a declared float64 lift."""
+
+    def _float_b(self):
+        b = self.fx.b.astype("<f4") + np.float32(0.25)
+        (self.root / "fb.raw").write_bytes(b.tobytes())
+        self.m["engines"]["B"]["output"].update(path="fb.raw", sha256=_sha(self.root / "fb.raw"),
+                                                dtype="float32", stride_bytes=self.fx.W * 4)
+        return b
+
+    def test_mixed_dtype_without_declaration_still_blocks(self):
+        self._float_b()
+        self.assertIn("DTYPE_MISMATCH", self.codes())
+
+    def test_declared_promotion_allows_uint16_against_float32(self):
+        self._float_b()
+        self.m["dtype_promotion"] = "float64-lossless"
+        r = cm.validate_pair(self.m, self.root)
+        self.assertTrue(r["comparable"], r["reasons"])
+        self.assertEqual(r["dtype_promotion"], {"applied": True, "to": "float64", "A": "uint16",
+                                                "B": "float32", "lossless": True})
+
+    def test_promotion_never_covers_two_integer_dtypes(self):
+        self.m["dtype_promotion"] = "float64-lossless"
+        self.m["engines"]["B"]["output"]["dtype"] = "int16"
+        self.assertIn("DTYPE_MISMATCH", self.codes())
+
+    def test_unknown_promotion_value_is_refused(self):
+        self._float_b()
+        self.m["dtype_promotion"] = "float32"
+        codes = self.codes()
+        self.assertIn("UNSUPPORTED_DTYPE_PROMOTION", codes)
+        self.assertIn("DTYPE_MISMATCH", codes)
+
+    def test_same_dtype_reports_no_promotion(self):
+        self.m["dtype_promotion"] = "float64-lossless"
+        r = cm.validate_pair(self.m, self.root)
+        self.assertTrue(r["comparable"], r["reasons"])
+        self.assertEqual(r["dtype_promotion"], {"applied": False})
+
+    def test_promoted_difference_is_exact_and_labelled(self):
+        b = self._float_b()
+        self.m["dtype_promotion"] = "float64-lossless"
+        r = cm.compare_raw_pair(self.m, self.root)
+        d = self.fx.a.astype(np.float64) - b.astype(np.float64)
+        self.assertEqual(r["status"], "computed")
+        self.assertEqual(r["mean_a_minus_b"], d.mean())
+        self.assertEqual(r["min_a_minus_b"], d.min())
+        self.assertEqual(r["max_a_minus_b"], d.max())
+        self.assertTrue(r["dtype_promotion"]["applied"])
+        self.assertIn("lifted losslessly to float64", r["difference"])
+
 class CompareRawPairTests(Base):
     def test_signed_difference_closed_form_no_uint16_wrap(self):
         r = cm.compare_raw_pair(self.m, self.root)
