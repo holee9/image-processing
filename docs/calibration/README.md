@@ -26,6 +26,7 @@
 | **안전/위험 담당자** | SHA-CALIB-001 → RTM | 위험 식별, 리스크 관리 |
 | **의료기기 규제 담당자** | SRS → RTM → SHA → SAD | IEC 62304 추적성 패키지 |
 | **알고리즘 검증 엔지니어** | [ALGORITHM-VERIFICATION-GUIDE.md](ALGORITHM-VERIFICATION-GUIDE.md) | Spec↔구현 교차검증, 수학적 검증 방법, CI 파이프라인 |
+| **2G 대비 결과 확인** | [HOWTO-Compare-2G-PRE.md](HOWTO-Compare-2G-PRE.md) | 같은 원시 영상의 2G 결과와 PRE 결과를 운영자 앱에서 번갈아 보고 차이 큰 곳 찾기 |
 | **GUI QA / Test GUI 개발자** | [XPE-GUI-CALIB-001](XPE-GUI-CALIB-001_Calibration_Verification_Test_GUI_Spec.md) | ImageProcTest.exe BPM Generator 구현 사양, P/Invoke ABI, QA 플레이북 |
 | **처음 접하는 개발자** | [KNOWLEDGE-BASE.md](KNOWLEDGE-BASE.md) | 전체 문서/코드/API 교차 참조 허브 |
 | **개념/메커니즘 이해** | [CONCEPT-DIAGRAMS.md](CONCEPT-DIAGRAMS.md) | 12개 Mermaid 개념도, 처리 흐름도, 상태 기계 |

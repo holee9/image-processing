@@ -1,7 +1,7 @@
 # X-ray Image Processing Engine - Documentation System
 
-**Version**: 3.7.0
-**Last Updated**: 2026-11-03  
+**Version**: 3.8.0
+**Last Updated**: 2026-11-18  
 **Organization**: Hybrid 3-Tier (Normative/Informational/Archive) + IEC 62304 Traceability  
 
 ---
@@ -177,6 +177,7 @@ PRE-02~09 Calibration 보정 알고리즘의 완전한 IEC 62304 Class B 수명 
 | 5.8 | Traceability Matrix | [RTM-CALIB-001](calibration/RTM-CALIB-001_Requirements_Traceability_Matrix.md) | RTM-001 |
 | — | Image Acquisition Protocol | [IAP-CALIB-001](calibration/IAP-CALIB-001_Image_Acquisition_Protocol.md) | IAP-001 |
 | — | Test Dataset Specification | [TDS-CALIB-001](calibration/TDS-CALIB-001_Test_Dataset_Specification.md) | TDS-001 |
+| — | How-to (2G 대비 비교) | [HOWTO-Compare-2G-PRE.md](calibration/HOWTO-Compare-2G-PRE.md) — 운영자 앱에서 2G·PRE 결과 비교, 계약 참조는 [tools/calibration/README.md](../tools/calibration/README.md) | HOWTO |
 
 ### 3.4 Ghost Correction (Lag/Ghost 보정) — 9개 문서
 
@@ -482,6 +483,7 @@ AI 에이전트가 이 프로젝트를 이해할 때 읽어야 할 문서 순서
 
 | Date | Version | Changes |
 |------|---------|---------|
+| 2026-11-18 | 3.8.0 | **2G·PRE 비교 사용 안내 추가** (Section 3.3): `calibration/HOWTO-Compare-2G-PRE.md`, 비교 계약 참조 `tools/calibration/README.md`. 루트 README를 진입 안내 중심으로 정리(낡기 쉬운 문서 수·신규 표시 제거, CI 워크플로 표를 실제 9개 워크플로에 맞춤). #285 |
 | 2026-11-03 | 3.7.0 | **GUI 실영상 수동 점검 기록 추가** (Section 7.1): `design/VERIFICATION-20261103-live-real-frame.md`. 설계 약속 대 실제 동작 대조, 이슈 #280·#281·#282 연결, #274 재확인. `design/README.md` 에 "Status against the live build" 절 추가. |
 | 2026-04-28 | 3.6.0 | **GUI Design 섹션 신규 추가** (Section 7): ImageProcTest Algorithm Evaluation Workbench Claude Design handoff. 프로토타입(HTML/JSX 6종), 구현 가이드, 기존 GUI 참조 파일 포함. 총 ~144개 문서. |
 | 2026-04-22 | 3.5.0 | **SPEC-BENCH-PRE/POST + SPEC-XPE-GSVG v1.0.0 추가** (Section 1.4 신규). api-spec v1.4.0 (AED 제거, 79개 함수). SPEC-XPE-MASTER v3.0.0. SPEC 문서 15종 인덱스 Section 1.4 추가. |
