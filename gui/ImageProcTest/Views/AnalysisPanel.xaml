@@ -11,6 +11,7 @@
         <local:EnglishLogDisplayConverter x:Key="EnglishLogDisplay" xmlns:local="clr-namespace:ImageProcTest.Views" />
         <viewModels:StringEqualsConverter x:Key="StringEquals" />
         <converters:TabAndToggleVisibilityConverter x:Key="TabAndToggle" />
+        <converters:MetricCellDisplayConverter x:Key="MetricCellDisplay" />
         <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
     </UserControl.Resources>
 
@@ -137,11 +138,11 @@
                                         <ColumnDefinition Width="48" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock AutomationProperties.AutomationId="{Binding Metric, StringFormat=MetricLabel:{0}}" Text="{Binding Metric}" Foreground="#b0b6c0" FontSize="10" TextWrapping="Wrap" />
-                                    <TextBlock AutomationProperties.AutomationId="{Binding Metric, StringFormat=MetricA:{0}}" Grid.Column="1" Text="{Binding LaneA}" Foreground="#7dd3fc"
+                                    <TextBlock AutomationProperties.AutomationId="{Binding Metric, StringFormat=MetricA:{0}}" Grid.Column="1" Text="{Binding LaneA, Converter={StaticResource MetricCellDisplay}}" Foreground="#7dd3fc"
                                                FontSize="10" TextWrapping="Wrap" HorizontalAlignment="Right" FontFamily="Consolas" />
-                                    <TextBlock AutomationProperties.AutomationId="{Binding Metric, StringFormat=MetricB:{0}}" Grid.Column="2" Text="{Binding LaneB}" Foreground="#c4b5fd"
+                                    <TextBlock AutomationProperties.AutomationId="{Binding Metric, StringFormat=MetricB:{0}}" Grid.Column="2" Text="{Binding LaneB, Converter={StaticResource MetricCellDisplay}}" Foreground="#c4b5fd"
                                                FontSize="10" TextWrapping="Wrap" HorizontalAlignment="Right" FontFamily="Consolas" />
-                                    <TextBlock Grid.Column="3" Text="{Binding Delta}" Foreground="#5a5f6a"
+                                    <TextBlock Grid.Column="3" Text="{Binding Delta}" Foreground="{StaticResource UiBodyText}"
                                                FontSize="10" TextWrapping="Wrap" HorizontalAlignment="Right" FontFamily="Consolas" />
                                 </Grid>
                             </DataTemplate>
@@ -150,7 +151,7 @@
                     </controls:AutomationBorder>
 
                     <TextBlock Text="{Binding MetricMeasurementNote}"
-                               Foreground="#5a5f6a" FontSize="10" TextWrapping="Wrap"
+                               Foreground="{StaticResource UiBodyText}" FontSize="10" TextWrapping="Wrap"
                                Margin="0,12,0,0" />
                 </StackPanel>
 
@@ -436,28 +437,28 @@
 
                         <Border Background="#0DFFFFFF" CornerRadius="6" Padding="12,8" Margin="0,0,6,6">
                             <StackPanel>
-                                <TextBlock Text="Passed" Foreground="#5a5f6a" FontSize="9" />
+                                <TextBlock Text="Passed" Foreground="{StaticResource UiBodyText}" FontSize="9" />
                                 <TextBlock Text="{Binding RunSet.Passed, FallbackValue=0}" Foreground="#86efac"
                                            FontSize="20" FontWeight="Bold" FontFamily="Consolas" />
                             </StackPanel>
                         </Border>
                         <Border Grid.Column="1" Background="#0DFFFFFF" CornerRadius="6" Padding="12,8" Margin="0,0,0,6">
                             <StackPanel>
-                                <TextBlock Text="Failed" Foreground="#5a5f6a" FontSize="9" />
+                                <TextBlock Text="Failed" Foreground="{StaticResource UiBodyText}" FontSize="9" />
                                 <TextBlock Text="{Binding RunSet.Failed, FallbackValue=0}" Foreground="#fca5a5"
                                            FontSize="20" FontWeight="Bold" FontFamily="Consolas" />
                             </StackPanel>
                         </Border>
                         <Border Grid.Row="1" Background="#0DFFFFFF" CornerRadius="6" Padding="12,8" Margin="0,0,6,0">
                             <StackPanel>
-                                <TextBlock Text="Deferred" Foreground="#5a5f6a" FontSize="9" />
+                                <TextBlock Text="Deferred" Foreground="{StaticResource UiBodyText}" FontSize="9" />
                                 <TextBlock Text="{Binding RunSet.Deferred, FallbackValue=0}" Foreground="#fcd34d"
                                            FontSize="20" FontWeight="Bold" FontFamily="Consolas" />
                             </StackPanel>
                         </Border>
                         <Border Grid.Row="1" Grid.Column="1" Background="#0DFFFFFF" CornerRadius="6" Padding="12,8">
                             <StackPanel>
-                                <TextBlock Text="Total" Foreground="#5a5f6a" FontSize="9" />
+                                <TextBlock Text="Total" Foreground="{StaticResource UiBodyText}" FontSize="9" />
                                 <TextBlock Text="{Binding RunSet.Total, FallbackValue=0}" Foreground="#f0f2f5"
                                            FontSize="20" FontWeight="Bold" FontFamily="Consolas" />
                             </StackPanel>

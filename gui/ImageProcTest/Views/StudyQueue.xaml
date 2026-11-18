@@ -21,7 +21,7 @@
                 <TextBlock Text="Study queue" Foreground="#f0f2f5" FontSize="11" FontWeight="SemiBold"
                            VerticalAlignment="Center" Margin="0,0,8,0" />
                 <Border Background="#1AFFFFFF" CornerRadius="8" Padding="6,2">
-                    <TextBlock Text="{Binding Studies.Count, FallbackValue=0}" Foreground="#8a909c"
+                    <TextBlock Text="{Binding Studies.Count, FallbackValue=0}" Foreground="{StaticResource UiBodyText}"
                                FontSize="10" VerticalAlignment="Center" />
                 </Border>
             </StackPanel>
@@ -66,11 +66,11 @@
         <!-- Footer: FIXTURE SET -->
         <Border DockPanel.Dock="Bottom" BorderBrush="#1AFFFFFF" BorderThickness="0,1,0,0" Padding="12,8">
             <StackPanel>
-                <TextBlock Text="FIXTURE SET" Foreground="#5a5f6a" FontSize="9"
+                <TextBlock Text="FIXTURE SET" Foreground="{StaticResource UiBodyText}" FontSize="9"
                            FontWeight="Medium" Margin="0,0,0,3" />
                 <TextBlock Text="gui-s0/golden-26.manifest" Foreground="#8a909c" FontSize="10"
                            FontFamily="Consolas" />
-                <TextBlock Foreground="#5a5f6a" FontSize="10" Margin="0,2,0,0">
+                <TextBlock Foreground="{StaticResource UiBodyText}" FontSize="10" Margin="0,2,0,0">
                     <Run Text="{Binding Studies.Count, Mode=OneWay, FallbackValue=0}" /><Run Text=" studies loaded" />
                 </TextBlock>
             </StackPanel>
@@ -98,7 +98,7 @@
                         <!-- Thumbnail placeholder -->
                         <Border Width="36" Height="36" CornerRadius="4" Background="#1AFFFFFF">
                             <TextBlock Text="{Binding BodyPart, Converter={StaticResource StatusGlyph}}"
-                                       FontSize="12" Foreground="#5a5f6a"
+                                       FontSize="12" Foreground="{StaticResource UiBodyText}"
                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
 
@@ -106,8 +106,8 @@
                         <StackPanel Grid.Column="1" Margin="8,0" VerticalAlignment="Center">
                             <TextBlock Text="{Binding Name}" ToolTip="{Binding RawPath}" FontSize="11" FontWeight="SemiBold"
                                        Foreground="#f0f2f5" />
-                            <TextBlock Text="{Binding BodyPart}" FontSize="10" Foreground="#5a5f6a" />
-                            <TextBlock Text="{Binding Source}" FontSize="10" Foreground="#5a5f6a" />
+                            <TextBlock Text="{Binding BodyPart}" FontSize="10" Foreground="{StaticResource UiBodyText}" />
+                            <TextBlock Text="{Binding Source}" FontSize="10" Foreground="{StaticResource UiBodyText}" />
                         </StackPanel>
 
                         <!-- Status + delta -->
@@ -119,7 +119,7 @@
                                 </TextBlock.Text>
                             </TextBlock>
                             <TextBlock Text="{Binding DeltaSummary}" FontSize="9"
-                                       Foreground="#5a5f6a" HorizontalAlignment="Center" />
+                                       Foreground="{StaticResource UiBodyText}" HorizontalAlignment="Center" />
                         </StackPanel>
                     </Grid>
                 </DataTemplate>

@@ -1,85 +1,87 @@
-GUI-C-274 구현·로컬 검증 결과 제출 — 전체 Mock E2E 2실패, 리더/Reviewer 검토 및 main CI 판정 대기. Refs #282.
+# GUI-C-274 재작업 1 — 수정·검증 결과 제출, 리더/main CI 판정 대기
 
 ## Claim
-O: 메인 창과 가져온 2G/PRE 비교 창의 공통 표시 정의 및 가독성을 정리한다.
-KR: 공통 정의 1개, 카드의 직접 지정 9곳 교체, 대비·초점·색 외 의미·잘림 점검, 무채색 영상 배경, 두 창 캡처, 영향 시험과 화면 E2E 전체 실행.
-UI 언어는 기존 사용자 결정인 영어로 통일했다. 한국어 도움말·설정 키·reason code·파일명·AutomationId는 변경하지 않았다. 스킬의 스타일/색/글꼴 조합은 적용하지 않았으며 새 폰트를 설치하지 않았다.
+O: 선택 문구·보기 탭·Metrics를 읽을 수 있게 한다. KR: 세 지적의 재현→최소 수정→시험·실제 캡처, 메인 창의 나머지 문자 조합 대비 목록을 남긴다.
+상태: 재작업 수정·로컬 관측을 제출한다. 카드 종료/병합 판정을 주장하지 않는다. 다음 행동은 리더 검토와 main CI 판정이다.
 
-| 제품 파일 | 변경·보존 범위 |
-|---|---|
-| gui/ImageProcTest/Resources/Presentation.xaml (신규) | 공통 색·SystemFonts.MessageFontFamily/MessageFontSize·기존 간격·초점 정의를 한 물리 파일에 둔다. 이름 있는 키만 사용하며 전역 implicit control style은 없다. |
-| gui/ImageProcTest/App.xaml | 위 dictionary를 앱에 연결한다. |
-| gui/ImageProcTest/MainWindow.xaml | 해당 창에만 글꼴/초점 style 적용, Mock/AI 안내 정의 참조, 상태줄 3칸 ellipsis를 Wrap으로 변경. 역할·바인딩은 보존. |
-| gui/ImageProcTest/Views/ComparisonImportWindow.cs | 같은 정의 사용. 흰색/주황 안내 대비 개선, warning와 포화 설명 영어 통일. 원래 간격·검정 배경·Lime/Yellow 표식·12px 기준 글꼴 및 차이 픽셀 계산은 보존. |
-| gui/ImageProcTest/Views/TopBar.xaml | Main 전용 호스트를 확인한 뒤 metadata 2곳·활성 아이콘 3곳만 기존 보조 글자색 #8A909C를 공통 참조하도록 변경. 배치 불변. |
-| gui/ImageProcTest/Views/AnalysisPanel.xaml | Main 전용 Metrics의 METRIC/Delta 헤더 2곳만 같은 공통 글자색 참조. 값·행 생성 로직은 보존. |
-| gui/ImageProcTest/Controls/ImageComparisonViewport.cs | Background DP를 표준 AddOwner/AffectsRender로 추가. frozen 기본값 RGB(8,13,23)은 유지하고 렌더가 선택한 배경을 읽는다. |
-| gui/ImageProcTest/Views/ViewportShell.xaml | Main 전용 3개 뷰포트만 UiImageBackground(Black)를 선택. 별도 Detached 창의 명시되지 않은 기본색은 기존 값 유지. |
+|지적|변경 전 관측|수정·변경 후 관측|근거|
+|---|---|---|---|
+|LANE A/B 선택 상자|실제 활성 상태. WPF glyph F0F2F5 / template EAEAEA, 1.072681:1. disabled는1.016122:1.|OS 템플릿/선택 계약을 유지하고 공통 UiControlText Black만 적용. normal17.455715:1, disabled18.427342:1, 열린 selected popup19.431637:1.|AlgorithmBar.xaml, Presentation.xaml; red-pickers-v2.txt, green-pickers.txt, green-popup.txt. 실제 최소/일반 창 캡처 두 장 모두 검정 글자 확인.|
+|STUDY가 보기 탭을 가림|baseline 실제 UIA Swipe1431/Split1242/Overlay1674/Difference999 px² 교차. 별도 WPF layout RED2F.|toolbar에 Auto 행, 영상/HUD/배너 본문에 * 행을 둔다. 두 실제 창 크기에서 여섯 탭 모두 STUDY 교차0. 헤더 밴드 밖 영상 화소 계산은 바꾸지 않음.|ViewportShell.xaml; red/green-geometry.txt, header-band-semantic-proof.json, 두 result.jsonl. STUDY 글자8.794117:1, 탭 정의값12.327135:1.|
+|Metrics RequestedNotApplied 중간 끊김|실제 표와 WPF 줄 경계에서 RequestedNotAppli / ed. RED8=3P/5F.|표시 converter만 Requested / not applied 등 별칭을 사용. 상태 enum/저장/엔진/시간 suffix 불변. GREEN8P, 실제 두 창에서 단어 사이 줄바꿈. 캡처값은 A/B 모두0.001ms, 시험 oracle0.002ms 원문 보존.|MetricCellDisplayConverter.cs, AnalysisPanel.xaml2셀. LaneA7DD3FC/14171E=10.755605:1, LaneBC4B5FD/14171E=9.713562:1.|
 
-시험/프로젝트 변경은 ImageProcTest.E2ETests.csproj의 동일 dictionary Page 연결, 신규 Rendering/SharedPresentationTests.cs, ImportedMarkerTests.cs의 영어 warning 기대 갱신이다. 제품 8파일·시험/프로젝트 3파일이며 처리 엔진·다른 창·docs/design 리디자인·AutomationId는 수정하지 않았다.
-
-#282의 Metrics 9행과 배너/상태줄 역할 분리는 이전 수용 기록과 현재 코드에 이미 있었다. 이를 새로 구현했다고 주장하지 않는다. MainWindowViewModel.MetricRows의 기존 단계4/VOI3/보정1/EI1과 render 통지, 실제 Mock 화면의 9행을 확인했다. 기존 배너 배치도 보존했다.
-이슈 근거: https://github.com/holee9/image-processing/issues/282 및 issue-282.json/issue-282-comments.json. 이전 수용 기록과 이번 관측은 구분했다.
+추가 저대비 메타데이터는 이 메인 창의 AlgorithmBar·AnalysisPanel·StudyQueue·VerdictBar·ViewportShell에서만 기존 본문색 B0B6C0을 재사용했다. STUDY/WINDOW·Opacity 정보판은 기존14171E, amber3판은 기존B45309를 불투명하게 사용한다. 다른 창·공용 StatusColor 모델·차이 영상 BGRA·상태 enum·AutomationId·엔진 계약은 변경하지 않았다. 영어 UI 방침을 유지했다.
 
 ## Evidence
-모든 아래 명령은 전용 카드 트리에서 기존 env.cmd 래퍼와 C:/Progra~1/dotnet/dotnet.exe를 사용했다. 정확한 환경과 실행 명령은 각 run-*.cmd, 원문 stdout/stderr는 같은 폴더에 보존했다.
+실제 명령은 WT `.moai/reports/lane-gui/GUI-C-274/rework1/run-*.cmd`, 원문은 같은 폴더 txt에 있다. 이 문서의 P/F/S는 통과/실패/건너뜀이다. 원문·명령·TRX·Sequence56개를 canonical rework1/implementation-evidence에 복사하고 archive-final.json으로 바이트·SHA readback을 확인했다(Sequence 동일사본 중복계수 안 함). env.cmd는 Windows 기본 경로만 복원하며 검증/훅 우회 변수가 없다.
 
-| 관측 | 실제 명령·원문 | 결과 |
+|검증|명령/원문|관측|
 |---|---|---|
-| 최초 표시 RED | dotnet test clients/ImageProcTest.E2ETests -c Debug --filter FullyQualifiedName~C274 --logger "console;verbosity=normal" / red.txt | 3F. 실제 white/DarkOrange 대비 2.3325:1<4.5, 공통 키·초점 정의 부재. |
-| 메타데이터/헤더 RED | red-metadata.txt, red-metrics-headers.txt와 각 run 파일 | 공통 키 부재 2F, 실제 Metrics source 색 조합 2.800679:1<4.5로 1F. |
-| 토큰·가독성 영향 | green-targeted.txt → green-targeted-final-v2.txt | 초기26/26P, 확장 후29=27P/2F(UIA 두 검색). 신규11은 모두P. |
-| 중립 배경 RED→GREEN | run-neutral-red-v2.cmd → run-neutral-green.cmd / red-neutral-canvas-v2.txt → green-neutral-canvas.txt | 5F→5/5P. 아래 실제 픽셀 oracle 포함. |
-| 최종 Rendering 영향 | dotnet test clients/ImageProcTest.E2ETests -c Debug --no-restore --filter FullyQualifiedName~ImageProcTest.E2ETests.Rendering --logger "console;verbosity=detailed" / neutral-rendering-impact.txt | 58=56P/2F. 신규 C274 16개 모두P. |
-| 최종 앱 빌드 | dotnet build gui/ImageProcTest/ImageProcTest.csproj -c Debug --no-restore --verbosity minimal / build-app-neutral.txt | 오류0/경고22, exit0. 경고 증감 baseline은 미측정. |
-| 중립 배경 전 전체 | run-full-mock.cmd / full-mock.txt | 381=282P/1F/98S, exit1. C270 실패, 당시 C271 통과. |
-| 최종 전체 | run-full-neutral-mock.cmd / full-neutral-mock.txt | 386=286P/2F/98S, exit1. 최종 source의 C274 16/16P. |
+|선택 상자 RED→GREEN|run-red-pickers-v2.cmd→run-green-pickers.cmd; 공통 dotnet test clients/ImageProcTest.E2ETests -c Debug --no-restore --filter FullyQualifiedName~C274R1_ActualPickerTemplate|4F→4P; 정상/disabled 실제 WPF brush+opacity 계산. popup2P 별도.|
+|Metrics RED→GREEN|run-red-metrics.cmd→run-green-metrics.cmd; --filter FullyQualifiedName~C274R1_Metric / red-metrics.txt→green-metrics.txt|3P/5F→8P. 화면 별칭과 raw 상태·시간 보존, 실제 줄 경계 단언.|
+|배치 RED→GREEN|run-red-geometry.cmd→run-green-geometry.cmd; --filter FullyQualifiedName~C274R1_StudyAndModeButtons / red-geometry.txt→green-geometry.txt|2F→2P. source-derived 실제 WPF layout의 겹침→0.|
+|최초 C274 전체 영향|run-green-impact-c274.cmd: dotnet test clients/ImageProcTest.E2ETests -c Debug --no-restore --filter FullyQualifiedName~C274 --logger console;verbosity=detailed|총32/통과32, exit0. 기존16+신규16.|
+|앱 빌드|dotnet build gui/ImageProcTest/ImageProcTest.csproj -c Debug --no-restore --verbosity minimal / build-app-final.txt|경고22/오류0, exit0. 경고 증감 baseline은 미측정.|
+|HUD 영향|run-green-hud.cmd, StateDisplayScenarios/ViewportTruthScenarios/ViewStateRenderScenarios / green-hud.txt|총16=9P/1F/6S, exit1. V05 메뉴 조회 null.|
+|최초 필터 없는 전체|run-full-rework1-mock.cmd / full-rework1-mock.txt|호스트중단. 총수불명/288P/2F/94S. 전체완주 아님. C274는20P만 완료 관측.|
+|Rendering 분리진단|run-rendering-blame.cmd / rendering-blame.txt, TRX|74=72P/2F/0S 정상완주, aborted0. 새16모두P. host중단 미재현·Sequence없음. 전체 대체 아님.|
+|2차 필터 없는 전체 진단|run-full-blame.cmd / full-blame.txt, TRX, Sequence|호스트중단. 콘솔59P/16S·총수불명, Sequence77완료/1미완료(popup LaneB). 콘솔과Sequence의 완주 개수는 서로 다른 관측이며 맞춰 쓰지 않음.|
+|popup 수명 RED→GREEN|red-popup-lifetime.txt→green-popup-lifetime.txt|2F(HasShutdownFinished=False)→2P(True), 원래 popup대비19.431637 유지.|
+|수명 보완 후 C274 영향|run-green-impact-c274-lifetime.cmd / green-impact-c274-lifetime.txt|32/32P, 기존16+신규16.|
+|수명 보완 후 Rendering|run-rendering-lifetime.cmd / rendering-lifetime.txt, TRX|74=73P/1F/0S 정상완주. C270만F, C271이번P. 원인 해소 단정 안 함.|
+|수명 보완 후 마지막 필터 없는 전체|run-full-lifetime.cmd / full-lifetime.txt, TRX|402=302P/2F/98S, 정상완주·exit1(단언2F), TRX error0/timeout0/aborted0. C27432P·V05S. Sequence없음. 이전 FailFast 원인 해소를 뜻하지 않음.|
+|소스 검토|git diff --check; 일반 독립 코드 리뷰|diff check 출력 없음/exit0. Critical/Important/Minor로 확인된 결함 없음. 리뷰어는 빌드/시험/앱을 실행하지 않았고 로그·manifest는 읽기만 했음.|
 
-최종 전체 명령:
-`dotnet test clients/ImageProcTest.E2ETests -c Debug --no-restore --logger "console;verbosity=normal"`
-환경은 XPE_E2E_BACKEND=Mock, XPE_NATIVE_DIR 미설정, XPE_NATIVE_DIR_EXCLUSIVE=1, XPE_E2E_ALLOW_GLOBAL_INPUT 미설정, 별도 mock-data-neutral-full이다. 시작 전 GUI/E2E 출력의 xpe_*.dll이 각각0인 것을 확인했다.
-최종 집계 원문: `총 테스트 수: 386`, `통과: 286`, `실패: 2`, `건너뜀: 98`. source는 전체 실행 중과 이후 동결했다.
-실패는 C270_ImportedOutputs_DisplayBothAndToggleWithoutComparabilityBlock의 ComparisonImageA 검색(:230/:232), C271_RegionsAreListed_AndSelectingOneZoomsAndCentersBothViews의 ComparisonMarkerList 검색 null(:64)이다. 이번 변경과의 인과·환경 문제·회귀 유무는 미확정이다. 대기·재시도·단언 완화를 추가하지 않았다. 영어 기대는 숫자25/20과 전체 warning 의미를 그대로 유지한 번역이다.
+전체 환경은 XPE_E2E_BACKEND=Mock, XPE_NATIVE_DIR unset, XPE_NATIVE_DIR_EXCLUSIVE=1, XPE_E2E_ALLOW_GLOBAL_INPUT unset, 별도 XPE_GUI_DATA_DIR이다. 환경 scrub과 실행은 각 한 cmd 안에서 한다. 전역 입력은 허용하지 않았다.
+첫 전체 원문: `테스트 실행이 중단되었습니다. / 총 테스트 수: 알 수 없음 / 통과:288 / 실패:2 / 건너뜀:94`. 두 번째도 같은 리소스 무한재귀 FailFast였고 console/Sequence의 관측은 위 표대로 분리한다. `MS.Win32.HwndSubclass.SubclassWndProc` stack만으로 원인을 특정하지 않았다.
+마지막 전체 원문:
+```text
+테스트 실행이 실패했습니다.
+총 테스트 수: 402
+     통과: 302
+     실패: 2
+    건너뜀: 98
+```
+마지막 TRX는 total402/executed304/passed302/failed2/error0/timeout0/aborted0이다. 98건은 조건부 건너뜀이며 실제 Native/실데이터 시나리오를 실행한 것으로 세지 않는다. 마지막 실패는 C270·C271 두 건이다.
 
-중립 배경 재현은 검정 설정 후 Expected BGRA `[0,0,0,255]`, Actual `[23,13,8,255]`였다. 수정 후 검정 코너, 원본 중심 화소17와 source bytes 불변, unstyled 뷰포트의 기존 navy/frozen 기본값, Main3개 배경 참조를 확인했다. 이 추가 동작 때문에 전체 E2E를 다시 실행했다. 앞선 실패·컴파일/준비 오류·중간 캡처도 삭제하지 않았다. 마지막 두 줄 들여쓰기만 정리한 근거와 LF/BOM 보존은 format-only-diff-final.json, 인코딩은 neutral-source-encodings.json에 있다. 그 정리는 최종 중립 배경 구현과 최종 전체 실행 전에 끝났다.
+2차 Sequence의 유일 미완료 시험은 C274R1_SelectedPopupText_IsReadable(LaneBAlgorithmPicker)이며, 이 시험이 근본 원인이라는 증거는 아니다. source와 수명 RED에서 새 시험 소유 STA의 Dispatcher 명시 종료 부재를 확인했다. 제품·공용 OnStaThread를 건드리지 않고 popup 시험의 finally에 로컬 Dispatcher 종료를 보완했다. 본문 예외는 보존하고 cleanup 실패를 통과로 숨기지 않으며, 다음 시험은 새 thread를 사용한다. 이는 [WPF Dispatcher 수명 계약](https://learn.microsoft.com/en-us/dotnet/api/system.windows.threading.dispatcher?view=windowsdesktop-8.0)에 따른 정리이며 원래 FailFast 인과는 미확정이다. [dotnet test의 --blame](https://learn.microsoft.com/dotnet/core/tools/dotnet-test-vstest)은 중단 시 Sequence를 남기는 기본 옵션만 사용했고 dump 옵션/설치는 하지 않았다.
 
-### 납품 전 4항목 점검
-| 항목 | 확인한 근거 | 관측 범위·한계 |
+V05 영향 실패 원문은 `View → Reset Comparison View did not appear after the View menu was expanded.`이다. ResetView의 기존350ms 뒤 ResetComparisonViewMenuItem 조회가 null(:354)이며 그 회차 메뉴 bounds는 미관측. 전체에서는 이 조회를 지나간 후 실제 전역 입력을 막는 guard로 SKIP했다. 이전 제출 전체에서도 SKIP이었으므로 원인 해소나 PASS로 바꾸어 주장하지 않는다. 메뉴/대기/단언/skip 조건은 수정하지 않았다.
+
+최초 전체·마지막 전체와 수명 보완 전 Rendering의 C270 ComparisonImageA null(ImportedComparisonTests.cs230/232), C271 ComparisonMarkerList null(ImportedMarkerTests.cs64)은 별도 실패로 기록한다. 수명 보완 후 Rendering에서는 C271이 통과했으나 인과 해결을 주장하지 않는다. 재작업 인과/원인은 미확정이며 카드 지시대로 리더 main CI 판정에 남긴다. 이를 제품 결함 확정이나 로컬 전체 통과로 해석하지 않는다.
+
+### 캡처와 대비
+기존 제출 `report-submission-1f8782fb.md`, main-neutral.png, comparison-neutral.png와 모든 로그는 보존했다. 새 캡처는 Mock·기존 synthetic_1024x1024.raw·별도 settings/data로 같은 수정 앱을 실행했다. UIA는 PID17108 소유 창의 패턴만 사용했고 전역 입력 없이 관측했다. 캡처 뒤 closed=true/killed=false로 정상 종료한 다음 전체 E2E를 시작했다.
+
+|새 PNG|창 크기 / 영상 크기|bytes / SHA256|
 |---|---|---|
-| 글자 대비 4.5:1 이상 | WPF 실제 리소스/속성 시험과 별도 sRGB 계산 일치. 아래 표 참조. | 변경한 안내·정보 색 조합의 측정이며 화면 전체 WCAG 인증이 아니다. |
-| 키보드 초점 표시 | WPF FocusVisualStyle/IsKeyboardFocused border, 레이아웃 크기 불변 단언. 실제 Main LoadRawImageButton·Compare ComparisonOpenButton UIA HasKeyboardFocus=true 및 파란 테두리 캡처. | 전역 Tab/키 입력 없이 해당 앱 요소 SetFocus만 사용. 전체 키보드 순회는 미실행. |
-| 색만으로 의미 전달하지 않음 | MOCK/경고의 명시 문장, A/B 글자, marker 번호·목록, 차이 부호·범위·비유한 범례 유지. | 측정 영상의 색 매핑 자체는 변경하지 않았다. |
-| 글자 잘림 없음 | Main1280×720에서 footer3칸 전체 문장 Wrap·본문 부모 bounds 포함, Metrics9행 관측. Compare1180×1200에서 안내/경고/범례/초점 버튼 확인. | 스크롤 영역은 스크롤을 허용한다. Native NOT CORRECTED 배너/HUD 기하 및 다른 DPI·극단 장문 상태는 미관측. |
+|rework1/after-minimum/main.png|1280×720 /1266×713|640236 / be264e3cda0cb5f89b9fb5283eadf2576b242f48f41cd9bc34daf8c4f19cc89f|
+|rework1/after-normal/main.png|1560×920 /1546×913|698925 /115ac8266e03b352e514121de4bf4e881be4b5bab4237996d39c4eb1aa0f3887|
 
-| 색 조합 | 대비 |
-|---|---:|
-| 정상 chrome black/white | 21.000000:1 |
-| Mock 흰 글자/#B91C1C | 6.470045:1 |
-| provenance 검정 글자/DarkOrange | 9.003233:1 |
-| AI #9A4D00/#1AB45309를 white 위 합성 | 5.300784:1 |
-| warning #9A4D00/white | 6.112548:1 |
-| Main metadata·Metrics 헤더 #8A909C/#14171E | 5.593284:1 |
-| run-set badge 합성 배경 위 metadata | 4.910622:1 |
-| focus #005FCC/white | 5.984935:1 |
-| 기존 Lime/Black 표식 글자 | 15.304000:1 |
-계산은 sRGB 상대 휘도, 8bit alpha 합성 후 대비비를 사용했다. contrast-measurements.json에 입력 RGB·방법·출력값을 보존했다. 최소 4.910622는 위 검증한 텍스트 조합의 최소이며 모든 가능 상태의 최솟값이 아니다.
+두 PNG에 세 지적의 변경 후 상태가 함께 보인다. 원본 window 캡처 JPEG를 PNG로 저장하고 decoded RGB 완전 동일을 단언했다. 자르기/내용 수정은 없으며 이미지는 커밋하지 않는다. capture-manifest.json에 실제 UIA 선택값·9개 Metrics 라벨·6개 교차면적·바이너리 SHA를 보존했다. UIA의 미지원 색 속성으로 대비를 추정하지 않았다.
 
-실제 최종 앱 캡처:
-- [메인](D:/workspace-github/xpe-gui/.moai/reports/lane-gui/GUI-C-274/main-neutral.png): 1266×713, 610772B, SHA256 9ea83838cde9294d1c4d4fdc971cce01b9327b0ba31f76e6fe4b9e09d341d695.
-- [비교](D:/workspace-github/xpe-gui/.moai/reports/lane-gui/GUI-C-274/comparison-neutral.png): 1166×1193, 1346021B, SHA256 bd7360996a081ece9bd24f13824691d0f7872afd1ba2d14f24c7ac9310ee45a6.
-최종 Mock 앱으로 기존 synthetic_1024x1024.raw를 열었고, 비교 창은 기존 compare-s5_csi_post-001.e2e.json을 가져왔다. Main 영상 바탕은 검정이며 actual UIA Metrics 라벨9개·상태줄3칸 원문을 확인했다. Compare는 기존 범위±2.10347/포화588094/1966080/M1377을 유지했다. comparable=false/계약 미검토 안내도 유지했다. 영상 품질·비교 적합성 통과를 뜻하지 않는다.
-UIA 소유 PID/EXE 검증, Invoke/Value/SetFocus/Resize 패턴과 Sky 읽기 캡처만 사용했다. 전역 입력·XPE 처리 엔진은 실행하지 않았다. 캡처 JPEG를 PNG로만 인코딩하고 디코딩 RGB 동일성을 확인했다. 영상 커밋 금지에 따라 모든 이미지는 로컬에만 보존한다.
-캡처 PID29640 정상 종료(closed=true,killed=false), Sky의 해당 작업 트리 잔류 창 조회0. 전체 제품 프로세스 목록이 없다는 주장으로 확대하지 않는다.
+소스 대비 감사는 문자 요소330·상태 조합31·관련 파일14로 분모를 유지하고 read→종료 SHA변경0을 확인했다. baseline과 after를 별도 보존했다. 계산은 WCAG 상대 휘도 및 alpha 합성 정의값이며 화면 pixel 실측과 구분한다.
+
+|추가 조합|변경 후 정의값 대비|
+|---|---|
+|count/thumbnail B0B6C0|6.604344:1|
+|Runset label|7.729063:1|
+|STUDY/WINDOW 제목|8.794117:1|
+|HUD metadata/Opacity|5.593284:1|
+|amber FFFBEB/B45309|4.842409:1|
+
+4.5 미만 잔여 전체 목록(정의/미관측 분리): StudyEntry.cs66-79의 StatusColor fallback5A5F6A glyph는 StudyQueue 기본2.800679/hover2.461490/selected2.274949:1이며 실제 도달은 미관측이다. 공용 모델을 임의 변경하지 않았다. Combo Black을 문법상 dark 조상 배경과 계산한1.171050:1은 실제 template 선택면 대비가 아니므로 결함/통과 판정에 쓰지 않는다. 실제 template 값은 위 별도 WPF 관측이다. 배경 없는 renderer 흰 Difference 범례는 영상값에 의존하며 실제 pixel 대비 미관측이다. 따라서 전 Main 모든 상태가4.5이상이라고 주장하지 않는다.
 
 ## Baseline-attribution
-전용 트리 C:/Users/drake/.moai/worktrees/projects/image-processing/GUI-C-274, 브랜치 WT-gui-shared-presentation. origin/main을 fetch한 뒤 해당 트리만 fast-forward하여 기준 HEAD1e5037353430cecef97d4d86b23fe96a87cc21de에서 시작했다. primary 브랜치 상태는 변경하지 않았다.
-최종 source11파일 변경 상태에서 최종 빌드·캡처·전체 시험을 수행했다. 최종 GUI DLL SHA256 be54453761028092eb547c3682e74b7f936de9fdf1dc5f0673adac3bc66c7e87은 캡처·전체 시작·종료 뒤 측정값이 같다. apphost EXE SHA256 f74cd9e7ed0eaf0339ef274db509968e01f9b9049804fab7a9877b2dcb8433d7, ProductVersion1.0.0+1e50373534. EXE 해시만으로 변경 코드를 식별하지 않는다.
-최종 화면 원문은 capture-neutral-*-result.jsonl, 이미지/바이너리 식별은 capture-neutral-manifest.json, 소스 보존 점검은 scope-preservation-final.json에 있다. 대상5개 XAML/C#의 AutomationId literal이 동일하고 DifferenceBitmap의 범례 외 픽셀 계산 코드가 동일함을 baseline과 기계 대조했다. 새 Main 배경은 단색 바탕만 바꾸며 원본 화소 보존을 별도 단언했다.
+WT `C:/Users/drake/.moai/worktrees/projects/image-processing/GUI-C-274`, branch `WT-gui-shared-presentation`, parent `1f8782fbd9bb4c9884333d0bbe90b6a508ebecf4`+동결 수정. 최초 제출의 parent는1e5037353430cecef97d4d86b23fe96a87cc21de이며 새 재작업과 구분한다. 제품7경로·시험2경로 변경에 이 보고서를 더한다. 수명 보완에서는 시험파일1개만 바뀌었고 최종 SHA는42080573a5a69bd32b553640092cc4f8fc8f86e338094a87ce06712f54c54626이다. 제품7파일과 App DLL은 캡처 이후 동일함을 freeze-final.json으로 다시 확인했다. .codex/hooks.json 등 기존 별도 작업/로그/초안은 포함하지 않는다.
+캡처 DLL SHA256 `cb781a226178df0c0e0617e58f9deddae47df6893c3562b334fc77be095d3408`; ProductVersion은 빌드 당시 HEAD1f8782fb 표기라 미커밋 수정 식별을 단독으로 대신하지 못한다. final-source-snapshot.json(수명보완전)·final-source-snapshot-lifetime.json(보완후) 및 capture-manifest.json의 파일별 SHA로 귀속한다. HEADER semantic proof는 색 보완 전 header 이동 단계에 대한 기계 대조이며 최종본 모든 XML이 동일하다는 뜻이 아니다. 최종 ID는 동일, Analysis 두 셀 converter 바인딩만 의도 변경했다.
+fetch 후 origin/main은README2행 전용 ebf0b344로 분기1/1. 이 WT의 HEAD/branch/source는 바뀌지 않았고 merge/rebase하지 않았다. 측정값을 최신 main의 관측으로 쓰지 않는다.
+`git diff --cached --check`: 제품/시험9경로를 명시 staging한 상태에서 출력없음·exit0(commit-source-check.txt). 보고서 포함 최종10경로의 `git diff --cached --check`도 출력없음·exit0(commit-final-check-v2.txt). 첫 최종check에서 보고서 끝공백1건을 발견해 제거했으며 원문은 commit-final-check.txt에 보존했다. core.hooksPath는 원래 image-processing/.git/hooks이며 SKIP_MOAI_PRECOMMIT은unset. 현재 셸 PATH에는 moai가 없어 설치된3.2.0(a85be1244) 경로만 커밋 프로세스 PATH에 추가해 정상 hook이 moai를 찾도록 한다. 훅/품질설정은 변경하지 않는다. 커밋 결과는 별도 관측 후 응답에 기록한다.
 
 ## Gaps
-전체 E2E 0실패는 미충족이다. UIA 두 실패의 원인과 main CI의 최종 판정은 아직 없다. SKIP98개/38사유 원문은 neutral-skip-reasons.json이다. 전역 입력15, legacy EXE 미빌드9, SelfCheck 미빌드2, GUI E2E 실행기 미빌드1 및 Native/데이터/Mock 제약 등이 포함된다. 발견된386case를 모든 실데이터 시나리오의 분모로 확대하지 않는다. 일부 실데이터 walkthrough는 미발견·미측정 sentinel이다.
-Mock 정책상 Native 전처리 경고가 숨겨져 실제 NOT CORRECTED 배너/HUD 비겹침은 미측정이다. 기존 StateDisplayScenarios.D258_NativeSkippedBanner_IsFullyInsideViewport_AndClearOfHudAndToolbar도 Mock에서 SKIP했다. 메인 최소 크기의 Native geometry는 main CI에서 확인해야 한다.
-별도 Native/SelfCheck/legacy 앱 실행, 전역 키보드 순회, 다른 DPI/테마, 커버리지/LSP 및 경고22개의 증감 baseline은 미측정이다. 다른 창 전체를 실행해 검사했다고 주장하지 않는다.
+로컬 전체0실패는 미충족이다. 앞선 두 전체는 호스트가 중단돼 suite 분모·완주를 주장할 수 없다. 마지막 SKIP98개·38사유를 full-lifetime-skip-reasons.json에 개별 시험/원문 이유로 보존했다. Native DLL/데이터, Mock 체인 차이, 전역 입력 제한, legacy EXE·SelfCheck·E2E runner 미빌드 및 측정 환경변수 등의 조건을 분리했다. 앞선 중단 실행의94개와 섞지 않는다.
+증거 공백: 수명 단언 추가 직전 시험 source exactbytes 사본을 보존하지 못했다. 당시 SHA0da1562233145cb6922ff78a136991d52b5a58625a911aa4a80c703b911e8d1a·snapshot·로그는 있으나 이를 원문 사본 보유로 바꾸어 쓰지 않는다. 추정 복원하지 않았다. 이후 수명 RED exactcopy b1509fa9cda8e6d98bbd268e4fc90d79c5c9401eb9c13c4094a62f2ab4212709는 ReworkPresentationTests.lifetime-red.cs.txt에 보존했다.
+Native NOT CORRECTED 배너의 실제 geometry(D258)는 Mock에서 SKIP이므로 미측정이다. 다른 DPI/OS테마/실제 pointer-hover·메뉴 전 상태, 키보드 전역 순회, renderer 영상종속 범례·fallback 도달, Native/SelfCheck/legacy EXE와 main CI는 미측정이다. 비교 창은 이번 재작업에서 새로 캡처하지 않았고 이전 제출 캡처와 기존 검증을 보존했다. 새로 재관측했다고 주장하지 않는다.
 
 ## Residual-risk
-이 변경은 공통 표시 정의·가독성·메인 중립 배경의 검토 가능한 구현이다. UIA 두 실패를 환경 탓이나 비회귀로 단정하지 않으며, 해당 검토와 main CI 화면 E2E 판정 전 카드 종료로 보지 않는다. 다른 창의 기본 배경은 보존 시험으로 확인했고 처리/저장/원본 픽셀 계약·차이 측정 색은 변경하지 않았다. 로컬 커밋만 제출하며 병합·push·최종 통합 판정은 리더가 담당한다.
+세 지적의 실제 화면과 수정 회귀는 관측했으나 모든 사용자 환경을 보증하지 않는다. C270/C271와 V05는 인과 미확정이며 공유 데스크톱/OS 템플릿에 의존하는 미관측 상태가 있다. leader가 main에 병합한 뒤 main CI 전체 화면 E2E로 최종 판정해야 한다. 훅 우회·이력 재작성·push·main 병합은 하지 않는다.

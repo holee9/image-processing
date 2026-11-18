@@ -15,7 +15,7 @@
 
         <!-- Label block -->
         <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
-            <TextBlock Text="VERDICT" Foreground="#5a5f6a" FontSize="9"
+            <TextBlock Text="VERDICT" Foreground="{StaticResource UiBodyText}" FontSize="9"
                        FontWeight="Medium" />
             <TextBlock Foreground="#8a909c" FontSize="10" Margin="0,2,0,0">
                 <Run Text="Record result for " /><Run Text="{Binding ActiveStudyId, FallbackValue=—}" />

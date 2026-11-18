@@ -16,6 +16,10 @@
     <SolidColorBrush x:Key="UiRoiStroke" Color="Yellow" />
     <SolidColorBrush x:Key="UiFocusBrush" Color="#FF005FCC" />
     <SolidColorBrush x:Key="UiMetadataText" Color="#FF8A909C" />
+    <SolidColorBrush x:Key="UiControlText" Color="Black" />
+    <SolidColorBrush x:Key="UiBodyText" Color="#FFB0B6C0" />
+    <SolidColorBrush x:Key="UiOverlaySurface" Color="#FF14171E" />
+    <SolidColorBrush x:Key="UiAmberNoticeSurface" Color="#FFB45309" />
     <Thickness x:Key="UiComparisonMargin">14</Thickness>
     <Thickness x:Key="UiCompactMargin">0,2,0,4</Thickness>
     <Thickness x:Key="UiControlGap">6,0,0,0</Thickness>
