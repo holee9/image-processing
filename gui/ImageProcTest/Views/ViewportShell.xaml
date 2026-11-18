@@ -12,181 +12,12 @@
         <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
     </UserControl.Resources>
     <Grid>
-        <!-- Viewport layer.
-             #172 (GUI-C-79): bound to SourceImage/ProcessedImage again. Between 54a3ae7 (2026-05-09)
-             and this change it was bound to LaneAImage/LaneBImage, which nothing ever assigned, so the
-             main viewport received null for both images while every check looked elsewhere. The
-             two-lane rendering those properties were meant for is #173. W-20 now reads what this
-             control actually received (see ImageComparisonViewport's automation peer). -->
-        <controls:ImageComparisonViewport x:Name="Viewport"
-                                          AutomationProperties.AutomationId="WorkbenchViewport"
-                                          SourceImage="{Binding SourceImage}"
-                                          ProcessedImage="{Binding ProcessedImage}"
-                                          ChainStatus="{Binding ChainStatus, Mode=OneWay}"
-                                          CompareMode="{Binding Settings.ComparisonMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                          ZoomScale="{Binding Settings.ComparisonZoomScale, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                          PanX="{Binding Settings.ComparisonPanX, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                          PanY="{Binding Settings.ComparisonPanY, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                          SwipePosition="{Binding Settings.ComparisonSwipePosition, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                          OverlayOpacity="{Binding Settings.ComparisonOverlayOpacity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-
-        <!-- #173 (GUI-C-113): the evaluation workbench. Both lanes take the SAME source and differ only
-             in the settings their processed image was produced with, so each carries its own peer and
-             can be read independently. They sit under the main viewport and stay collapsed until both
-             lanes have been drawn, so an app that never renders them shows nothing rather than two
-             empty boxes claiming to be lanes. -->
-        <!-- GUI-C-233j (Codex #178): the row IS always there (the comment above said "collapsed until both lanes have been drawn"; nothing ever did that), and ImageComparisonViewport draws the SOURCE
-             in place of a missing processed image - right for the main viewport (a loaded RAW shows before any render), wrong for a lane, whose whole claim is "this is what was applied". So a lane
-             with no applied image hides its viewport and says so; only the lanes are changed, the main viewport keeps its RAW fallback. -->
-        <Grid x:Name="LaneRow" VerticalAlignment="Bottom" Height="180" Margin="8,0,8,8">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="8" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-            <Grid>
-                <controls:ImageComparisonViewport x:Name="LaneAViewport"
-                                                  AutomationProperties.AutomationId="LaneAViewport"
-                                                  CompareMode="ProcessedOnly"
-                                                  SourceImage="{Binding SourceImage}"
-                                                  ProcessedImage="{Binding LaneAImage}">
-                    <controls:ImageComparisonViewport.Style>
-                        <Style TargetType="controls:ImageComparisonViewport">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding LaneAImage}" Value="{x:Null}">
-                                    <Setter Property="Visibility" Value="Collapsed" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </controls:ImageComparisonViewport.Style>
-                </controls:ImageComparisonViewport>
-                <Border x:Name="LaneAEmpty" Background="#0E1015" BorderBrush="#1AFFFFFF" BorderThickness="1" CornerRadius="6">
-                    <TextBlock AutomationProperties.AutomationId="LaneAEmptyText" Text="No applied image"
-                               Foreground="#8b92a0" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                    <Border.Style>
-                        <Style TargetType="Border">
-                            <Setter Property="Visibility" Value="Collapsed" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding LaneAImage}" Value="{x:Null}">
-                                    <Setter Property="Visibility" Value="Visible" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Border.Style>
-                </Border>
-            </Grid>
-            <Grid Grid.Column="2">
-                <controls:ImageComparisonViewport x:Name="LaneBViewport"
-                                                  AutomationProperties.AutomationId="LaneBViewport"
-                                                  CompareMode="ProcessedOnly"
-                                                  SourceImage="{Binding SourceImage}"
-                                                  ProcessedImage="{Binding LaneBImage}">
-                    <controls:ImageComparisonViewport.Style>
-                        <Style TargetType="controls:ImageComparisonViewport">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding LaneBImage}" Value="{x:Null}">
-                                    <Setter Property="Visibility" Value="Collapsed" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </controls:ImageComparisonViewport.Style>
-                </controls:ImageComparisonViewport>
-                <Border x:Name="LaneBEmpty" Background="#0E1015" BorderBrush="#1AFFFFFF" BorderThickness="1" CornerRadius="6">
-                    <TextBlock AutomationProperties.AutomationId="LaneBEmptyText" Text="No applied image"
-                               Foreground="#8b92a0" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                    <Border.Style>
-                        <Style TargetType="Border">
-                            <Setter Property="Visibility" Value="Collapsed" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding LaneBImage}" Value="{x:Null}">
-                                    <Setter Property="Visibility" Value="Visible" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Border.Style>
-                </Border>
-                <!-- the Candidate was drawn with settings that are no longer the current ones -->
-                <Border HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,6,0,0" Padding="8,3" CornerRadius="4" Background="#E6B45309"
-                        Visibility="{Binding LaneBIsStale, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
-                    <TextBlock AutomationProperties.AutomationId="LaneBStaleText" Text="Candidate: settings changed - apply again"
-                               Foreground="#FFFFFBEB" FontSize="11" FontWeight="SemiBold" />
-                </Border>
-            </Grid>
-        </Grid>
-
-        <!-- #171 ①/③ (GUI-C-79): the processed image is not the result of what was asked for. -->
-        <Border x:Name="PreviewStaleBanner"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Top"
-                Margin="0,58,0,0"
-                Padding="10,6"
-                CornerRadius="6"
-                Background="#E6B45309"
-                BorderBrush="#FFF59E0B"
-                BorderThickness="1"
-                Visibility="{Binding IsPreviewStale, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
-            <TextBlock AutomationProperties.AutomationId="PreviewStaleIndicator"
-                       Text="{Binding PreviewStaleReason, Mode=OneWay}"
-                       Foreground="#FFFFFBEB"
-                       FontSize="12"
-                       FontWeight="SemiBold"
-                       TextWrapping="Wrap"
-                       MaxWidth="520" />
-        </Border>
-
-        <!-- GUI-C-234d (Codex #182): the stored preprocessing-off of an earlier version, until the operator acknowledges it. -->
-        <Border x:Name="PreprocessOffNoticeBanner"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Top"
-                Margin="0,150,0,0"
-                Padding="10,6"
-                CornerRadius="6"
-                Background="#E6B45309"
-                BorderBrush="#FFF59E0B"
-                BorderThickness="1"
-                Visibility="{Binding HasPreprocessOffNotice, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
-            <StackPanel Orientation="Horizontal">
-                <TextBlock AutomationProperties.AutomationId="PreprocessOffNoticeText"
-                           Text="{Binding PreprocessOffNotice, Mode=OneWay}"
-                           Foreground="#FFFFFBEB"
-                           FontSize="12"
-                           FontWeight="SemiBold"
-                           TextWrapping="Wrap"
-                           MaxWidth="480" />
-                <Button AutomationProperties.AutomationId="PreprocessOffNoticeOkButton"
-                        Content="OK"
-                        Margin="10,0,0,0"
-                        Padding="10,2"
-                        VerticalAlignment="Center"
-                        Command="{Binding AcknowledgePreprocessOffNoticeCommand}" />
-            </StackPanel>
-        </Border>
-
-        <!-- GUI-C-234c (Codex #181): preprocessing is on by default; on the Native backend a skip leaves the image uncorrected, and this stays up as long as that image is on screen. -->
-        <controls:AutomationBorder x:Name="PreprocessSkippedBanner"
-                AutomationProperties.AutomationId="PreprocessSkippedBannerBorder"
-                Panel.ZIndex="100"
-                HorizontalAlignment="Stretch"
-                VerticalAlignment="Top"
-                Margin="{Binding ActualHeight, ElementName=StudyHud, Converter={StaticResource BannerBelowHud}}"
-                MaxWidth="544"
-                Padding="10,6"
-                CornerRadius="6"
-                Background="#E6B91C1C"
-                BorderBrush="#FFEF4444"
-                BorderThickness="1"
-                Visibility="{Binding HasRenderedPreprocessWarning, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
-            <TextBlock AutomationProperties.AutomationId="PreprocessSkippedIndicator"
-                       Text="{Binding RenderedPreprocessWarning, Mode=OneWay}"
-                       Foreground="#FFFEF2F2"
-                       FontSize="12"
-                       FontWeight="SemiBold"
-                       TextWrapping="Wrap"
-                       MaxWidth="520" />
-        </controls:AutomationBorder>
-
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
         <!-- View Toolbar (floating, top-center) -->
-        <controls:AutomationBorder AutomationProperties.AutomationId="ViewportToolbar" HorizontalAlignment="Center"
+        <controls:AutomationBorder AutomationProperties.AutomationId="ViewportToolbar" Grid.Row="0" HorizontalAlignment="Center"
                 VerticalAlignment="Top"
                 Margin="0,10,0,0"
                 CornerRadius="12"
@@ -280,191 +111,366 @@
             </StackPanel>
         </controls:AutomationBorder>
 
-        <!-- HUD: STUDY block (top-left) -->
-        <controls:AutomationBorder x:Name="StudyHud" AutomationProperties.AutomationId="StudyHud" HorizontalAlignment="Left"
-                VerticalAlignment="Top"
-                Margin="10,10,0,0"
-                CornerRadius="6"
-                Padding="10,8"
-                Background="#CC14171E">
-            <controls:AutomationBorder.Effect>
-                <DropShadowEffect ShadowDepth="1" BlurRadius="4" Opacity="0.3" Color="#000000" />
-            </controls:AutomationBorder.Effect>
-            <StackPanel>
-                <TextBlock Text="STUDY" FontSize="9" FontWeight="SemiBold" Foreground="#5a5f6a"
-                           Margin="0,0,0,3" />
-                <TextBlock Text="{Binding ActiveStudyId, FallbackValue=—}"
-                           FontSize="10" FontWeight="SemiBold" FontFamily="Consolas"
-                           Foreground="#f0f2f5" />
-                <TextBlock Text="{Binding ActiveImageSummary}"
-                           FontSize="10" FontFamily="Consolas" Foreground="#8a909c"
-                           TextWrapping="Wrap" MaxWidth="220" />
-            </StackPanel>
-        </controls:AutomationBorder>
+        <Grid Grid.Row="1">
+            <!-- Viewport layer.
+                 #172 (GUI-C-79): bound to SourceImage/ProcessedImage again. Between 54a3ae7 (2026-05-09)
+                 and this change it was bound to LaneAImage/LaneBImage, which nothing ever assigned, so the
+                 main viewport received null for both images while every check looked elsewhere. The
+                 two-lane rendering those properties were meant for is #173. W-20 now reads what this
+                 control actually received (see ImageComparisonViewport's automation peer). -->
+            <controls:ImageComparisonViewport x:Name="Viewport" Background="{DynamicResource UiImageBackground}"
+                                              AutomationProperties.AutomationId="WorkbenchViewport"
+                                              SourceImage="{Binding SourceImage}"
+                                              ProcessedImage="{Binding ProcessedImage}"
+                                              ChainStatus="{Binding ChainStatus, Mode=OneWay}"
+                                              CompareMode="{Binding Settings.ComparisonMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              ZoomScale="{Binding Settings.ComparisonZoomScale, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              PanX="{Binding Settings.ComparisonPanX, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              PanY="{Binding Settings.ComparisonPanY, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              SwipePosition="{Binding Settings.ComparisonSwipePosition, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              OverlayOpacity="{Binding Settings.ComparisonOverlayOpacity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
-        <!-- HUD: WINDOW block (top-right) -->
-        <Border HorizontalAlignment="Right"
-                VerticalAlignment="Top"
-                Margin="0,10,10,0"
-                CornerRadius="6"
-                Padding="10,8"
-                Background="#CC14171E">
-            <Border.Effect>
-                <DropShadowEffect ShadowDepth="1" BlurRadius="4" Opacity="0.3" Color="#000000" />
-            </Border.Effect>
-            <StackPanel>
-                <TextBlock Text="WINDOW" FontSize="9" FontWeight="SemiBold" Foreground="#5a5f6a"
-                           Margin="0,0,0,3" />
-                <!-- #171 ② (GUI-C-79): the window that PRODUCED the image beside it, not the current
-                     settings. After a VOI edit these keep the rendered values until the pipeline runs
-                     again; the stale indicator says why they differ from the Analysis panel. -->
-                <TextBlock FontSize="10" FontFamily="Consolas"
-                           AutomationProperties.AutomationId="HudVoiWindow">
-                    <Run Text="C " Foreground="#8a909c" />
-                    <Run Text="{Binding RenderedVoiCenter, Mode=OneWay, StringFormat={}{0:0}, TargetNullValue=—}" Foreground="#f0f2f5" />
-                    <Run Text=" · W " Foreground="#8a909c" />
-                    <Run Text="{Binding RenderedVoiWidth, Mode=OneWay, StringFormat={}{0:0}, TargetNullValue=—}" Foreground="#f0f2f5" />
-                </TextBlock>
-                <TextBlock FontSize="10" FontFamily="Consolas">
-                    <Run Text="VOI: " Foreground="#8a909c" />
-                    <Run Text="{Binding RenderedVoiMode, Mode=OneWay, TargetNullValue=not applied}" Foreground="#f0f2f5" />
-                </TextBlock>
-                <TextBlock FontSize="10" FontFamily="Consolas" AutomationProperties.AutomationId="HudCalibStages">
-                    <Run Text="Calib: " Foreground="#8a909c" />
-                    <Run Text="{Binding CalibStageCountDisplay, Mode=OneWay}" Foreground="#f0f2f5" />
-                </TextBlock>
-            </StackPanel>
-        </Border>
+            <!-- #173 (GUI-C-113): the evaluation workbench. Both lanes take the SAME source and differ only
+                 in the settings their processed image was produced with, so each carries its own peer and
+                 can be read independently. They sit under the main viewport and stay collapsed until both
+                 lanes have been drawn, so an app that never renders them shows nothing rather than two
+                 empty boxes claiming to be lanes. -->
+            <!-- GUI-C-233j (Codex #178): the row IS always there (the comment above said "collapsed until both lanes have been drawn"; nothing ever did that), and ImageComparisonViewport draws the SOURCE
+                 in place of a missing processed image - right for the main viewport (a loaded RAW shows before any render), wrong for a lane, whose whole claim is "this is what was applied". So a lane
+                 with no applied image hides its viewport and says so; only the lanes are changed, the main viewport keeps its RAW fallback. -->
+            <Grid x:Name="LaneRow" VerticalAlignment="Bottom" Height="180" Margin="8,0,8,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="8" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid>
+                    <controls:ImageComparisonViewport x:Name="LaneAViewport" Background="{DynamicResource UiImageBackground}"
+                                                      AutomationProperties.AutomationId="LaneAViewport"
+                                                      CompareMode="ProcessedOnly"
+                                                      SourceImage="{Binding SourceImage}"
+                                                      ProcessedImage="{Binding LaneAImage}">
+                        <controls:ImageComparisonViewport.Style>
+                            <Style TargetType="controls:ImageComparisonViewport">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding LaneAImage}" Value="{x:Null}">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </controls:ImageComparisonViewport.Style>
+                    </controls:ImageComparisonViewport>
+                    <Border x:Name="LaneAEmpty" Background="#0E1015" BorderBrush="#1AFFFFFF" BorderThickness="1" CornerRadius="6">
+                        <TextBlock AutomationProperties.AutomationId="LaneAEmptyText" Text="No applied image"
+                                   Foreground="#8b92a0" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding LaneAImage}" Value="{x:Null}">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                    </Border>
+                </Grid>
+                <Grid Grid.Column="2">
+                    <controls:ImageComparisonViewport x:Name="LaneBViewport" Background="{DynamicResource UiImageBackground}"
+                                                      AutomationProperties.AutomationId="LaneBViewport"
+                                                      CompareMode="ProcessedOnly"
+                                                      SourceImage="{Binding SourceImage}"
+                                                      ProcessedImage="{Binding LaneBImage}">
+                        <controls:ImageComparisonViewport.Style>
+                            <Style TargetType="controls:ImageComparisonViewport">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding LaneBImage}" Value="{x:Null}">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </controls:ImageComparisonViewport.Style>
+                    </controls:ImageComparisonViewport>
+                    <Border x:Name="LaneBEmpty" Background="#0E1015" BorderBrush="#1AFFFFFF" BorderThickness="1" CornerRadius="6">
+                        <TextBlock AutomationProperties.AutomationId="LaneBEmptyText" Text="No applied image"
+                                   Foreground="#8b92a0" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding LaneBImage}" Value="{x:Null}">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                    </Border>
+                    <!-- the Candidate was drawn with settings that are no longer the current ones -->
+                    <Border HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,6,0,0" Padding="8,3" CornerRadius="4" Background="{StaticResource UiAmberNoticeSurface}"
+                            Visibility="{Binding LaneBIsStale, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock AutomationProperties.AutomationId="LaneBStaleText" Text="Candidate: settings changed - apply again"
+                                   Foreground="#FFFFFBEB" FontSize="11" FontWeight="SemiBold" />
+                    </Border>
+                </Grid>
+            </Grid>
 
-        <!-- Zoom Dock (floating, bottom-right) -->
-        <Border HorizontalAlignment="Right"
-                VerticalAlignment="Bottom"
-                Margin="0,0,10,10"
-                CornerRadius="12"
-                Padding="6"
-                Background="#D914171E">
-            <Border.Effect>
-                <DropShadowEffect ShadowDepth="2" BlurRadius="8" Opacity="0.4" Color="#000000" />
-            </Border.Effect>
+            <!-- #171 ①/③ (GUI-C-79): the processed image is not the result of what was asked for. -->
+            <Border x:Name="PreviewStaleBanner"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Top"
+                    Margin="0,58,0,0"
+                    Padding="10,6"
+                    CornerRadius="6"
+                    Background="{StaticResource UiAmberNoticeSurface}"
+                    BorderBrush="#FFF59E0B"
+                    BorderThickness="1"
+                    Visibility="{Binding IsPreviewStale, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock AutomationProperties.AutomationId="PreviewStaleIndicator"
+                           Text="{Binding PreviewStaleReason, Mode=OneWay}"
+                           Foreground="#FFFFFBEB"
+                           FontSize="12"
+                           FontWeight="SemiBold"
+                           TextWrapping="Wrap"
+                           MaxWidth="520" />
+            </Border>
 
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <Button Content="-"
-                        Command="{Binding ZoomOutCommand}"
-                        Width="28" Height="28"
-                        FontSize="14" FontWeight="Bold"
-                        Foreground="#f0f2f5" Background="Transparent"
-                        BorderThickness="0" Cursor="Hand" />
+            <!-- GUI-C-234d (Codex #182): the stored preprocessing-off of an earlier version, until the operator acknowledges it. -->
+            <Border x:Name="PreprocessOffNoticeBanner"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Top"
+                    Margin="0,150,0,0"
+                    Padding="10,6"
+                    CornerRadius="6"
+                    Background="{StaticResource UiAmberNoticeSurface}"
+                    BorderBrush="#FFF59E0B"
+                    BorderThickness="1"
+                    Visibility="{Binding HasPreprocessOffNotice, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock AutomationProperties.AutomationId="PreprocessOffNoticeText"
+                               Text="{Binding PreprocessOffNotice, Mode=OneWay}"
+                               Foreground="#FFFFFBEB"
+                               FontSize="12"
+                               FontWeight="SemiBold"
+                               TextWrapping="Wrap"
+                               MaxWidth="480" />
+                    <Button AutomationProperties.AutomationId="PreprocessOffNoticeOkButton"
+                            Content="OK"
+                            Margin="10,0,0,0"
+                            Padding="10,2"
+                            VerticalAlignment="Center"
+                            Command="{Binding AcknowledgePreprocessOffNoticeCommand}" />
+                </StackPanel>
+            </Border>
 
-                <TextBlock x:Name="ZoomPercentText"
-                           AutomationProperties.AutomationId="ZoomPercentText"
-                           Text="{Binding Settings.ComparisonZoomScale, Converter={StaticResource ZoomPercentConverter}, FallbackValue=fit}"
-                           Foreground="#f0f2f5" FontSize="11" FontWeight="Medium"
-                           VerticalAlignment="Center"
-                           Margin="8,0"
-                           MinWidth="42"
-                           TextAlignment="Center" />
+            <!-- GUI-C-234c (Codex #181): preprocessing is on by default; on the Native backend a skip leaves the image uncorrected, and this stays up as long as that image is on screen. -->
+            <controls:AutomationBorder x:Name="PreprocessSkippedBanner"
+                    AutomationProperties.AutomationId="PreprocessSkippedBannerBorder"
+                    Panel.ZIndex="100"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Top"
+                    Margin="{Binding ActualHeight, ElementName=StudyHud, Converter={StaticResource BannerBelowHud}}"
+                    MaxWidth="544"
+                    Padding="10,6"
+                    CornerRadius="6"
+                    Background="#E6B91C1C"
+                    BorderBrush="#FFEF4444"
+                    BorderThickness="1"
+                    Visibility="{Binding HasRenderedPreprocessWarning, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock AutomationProperties.AutomationId="PreprocessSkippedIndicator"
+                           Text="{Binding RenderedPreprocessWarning, Mode=OneWay}"
+                           Foreground="#FFFEF2F2"
+                           FontSize="12"
+                           FontWeight="SemiBold"
+                           TextWrapping="Wrap"
+                           MaxWidth="520" />
+            </controls:AutomationBorder>
 
-                <Button Content="+"
-                        Command="{Binding ZoomInCommand}"
-                        Width="28" Height="28"
-                        FontSize="14" FontWeight="Bold"
-                        Foreground="#f0f2f5" Background="Transparent"
-                        BorderThickness="0" Cursor="Hand" />
+            <!-- HUD: STUDY block (top-left) -->
+            <controls:AutomationBorder x:Name="StudyHud" AutomationProperties.AutomationId="StudyHud" HorizontalAlignment="Left"
+                    VerticalAlignment="Top"
+                    Margin="10,10,0,0"
+                    CornerRadius="6"
+                    Padding="10,8"
+                    Background="{StaticResource UiOverlaySurface}">
+                <controls:AutomationBorder.Effect>
+                    <DropShadowEffect ShadowDepth="1" BlurRadius="4" Opacity="0.3" Color="#000000" />
+                </controls:AutomationBorder.Effect>
+                <StackPanel>
+                    <TextBlock Text="STUDY" FontSize="9" FontWeight="SemiBold" Foreground="{StaticResource UiBodyText}"
+                               Margin="0,0,0,3" />
+                    <TextBlock Text="{Binding ActiveStudyId, FallbackValue=—}"
+                               FontSize="10" FontWeight="SemiBold" FontFamily="Consolas"
+                               Foreground="#f0f2f5" />
+                    <TextBlock Text="{Binding ActiveImageSummary}"
+                               FontSize="10" FontFamily="Consolas" Foreground="#8a909c"
+                               TextWrapping="Wrap" MaxWidth="220" />
+                </StackPanel>
+            </controls:AutomationBorder>
 
-                <Rectangle Width="1" Fill="#1AFFFFFF" Margin="6,4" />
+            <!-- HUD: WINDOW block (top-right) -->
+            <Border HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Margin="0,10,10,0"
+                    CornerRadius="6"
+                    Padding="10,8"
+                    Background="{StaticResource UiOverlaySurface}">
+                <Border.Effect>
+                    <DropShadowEffect ShadowDepth="1" BlurRadius="4" Opacity="0.3" Color="#000000" />
+                </Border.Effect>
+                <StackPanel>
+                    <TextBlock Text="WINDOW" FontSize="9" FontWeight="SemiBold" Foreground="{StaticResource UiBodyText}"
+                               Margin="0,0,0,3" />
+                    <!-- #171 ② (GUI-C-79): the window that PRODUCED the image beside it, not the current
+                         settings. After a VOI edit these keep the rendered values until the pipeline runs
+                         again; the stale indicator says why they differ from the Analysis panel. -->
+                    <TextBlock FontSize="10" FontFamily="Consolas"
+                               AutomationProperties.AutomationId="HudVoiWindow">
+                        <Run Text="C " Foreground="#8a909c" />
+                        <Run Text="{Binding RenderedVoiCenter, Mode=OneWay, StringFormat={}{0:0}, TargetNullValue=—}" Foreground="#f0f2f5" />
+                        <Run Text=" · W " Foreground="#8a909c" />
+                        <Run Text="{Binding RenderedVoiWidth, Mode=OneWay, StringFormat={}{0:0}, TargetNullValue=—}" Foreground="#f0f2f5" />
+                    </TextBlock>
+                    <TextBlock FontSize="10" FontFamily="Consolas">
+                        <Run Text="VOI: " Foreground="#8a909c" />
+                        <Run Text="{Binding RenderedVoiMode, Mode=OneWay, TargetNullValue=not applied}" Foreground="#f0f2f5" />
+                    </TextBlock>
+                    <TextBlock FontSize="10" FontFamily="Consolas" AutomationProperties.AutomationId="HudCalibStages">
+                        <Run Text="Calib: " Foreground="#8a909c" />
+                        <Run Text="{Binding CalibStageCountDisplay, Mode=OneWay}" Foreground="#f0f2f5" />
+                    </TextBlock>
+                </StackPanel>
+            </Border>
 
-                <Button Content="Fit"
-                        Command="{Binding ZoomFitCommand}"
-                        Padding="10,4"
-                        FontSize="11" FontWeight="Medium"
-                        Foreground="#f0f2f5" Background="Transparent"
-                        BorderThickness="0" Cursor="Hand" />
+            <!-- Zoom Dock (floating, bottom-right) -->
+            <Border HorizontalAlignment="Right"
+                    VerticalAlignment="Bottom"
+                    Margin="0,0,10,10"
+                    CornerRadius="12"
+                    Padding="6"
+                    Background="#D914171E">
+                <Border.Effect>
+                    <DropShadowEffect ShadowDepth="2" BlurRadius="8" Opacity="0.4" Color="#000000" />
+                </Border.Effect>
 
-                <Button Content="1:1"
-                        Command="{Binding ZoomActualCommand}"
-                        Padding="10,4"
-                        FontSize="11" FontWeight="Medium"
-                        Foreground="#f0f2f5" Background="Transparent"
-                        BorderThickness="0" Cursor="Hand" />
-            </StackPanel>
-        </Border>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="-"
+                            Command="{Binding ZoomOutCommand}"
+                            Width="28" Height="28"
+                            FontSize="14" FontWeight="Bold"
+                            Foreground="#f0f2f5" Background="Transparent"
+                            BorderThickness="0" Cursor="Hand" />
 
-        <!-- Lane tags (bottom corners) — hidden in DifferenceHeatmap mode -->
-        <Border HorizontalAlignment="Left"
-                VerticalAlignment="Bottom"
-                Margin="10,0,0,10"
-                CornerRadius="8"
-                Padding="10,6"
-                Background="#D914171E">
-            <Border.Style>
-                <Style TargetType="Border">
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding Settings.ComparisonMode}" Value="DifferenceHeatmap">
-                            <Setter Property="Visibility" Value="Collapsed" />
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </Border.Style>
-            <Border.Effect>
-                <DropShadowEffect ShadowDepth="1" BlurRadius="4" Opacity="0.3" Color="#000000" />
-            </Border.Effect>
-            <StackPanel Orientation="Horizontal">
-                <Rectangle Width="4" Height="14" RadiusX="2" RadiusY="2" Fill="#7dd3fc" Margin="0,0,6,0" />
-                <TextBlock FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" AutomationProperties.AutomationId="LaneATag">
-                    <Run Text="A" Foreground="#7dd3fc" /><Run Text=" " />
-                    <Run Text="{Binding RenderedLaneAAlgorithm, Mode=OneWay, TargetNullValue=—, FallbackValue=—}" Foreground="#b0b6c0" />
-                </TextBlock>
-            </StackPanel>
-        </Border>
+                    <TextBlock x:Name="ZoomPercentText"
+                               AutomationProperties.AutomationId="ZoomPercentText"
+                               Text="{Binding Settings.ComparisonZoomScale, Converter={StaticResource ZoomPercentConverter}, FallbackValue=fit}"
+                               Foreground="#f0f2f5" FontSize="11" FontWeight="Medium"
+                               VerticalAlignment="Center"
+                               Margin="8,0"
+                               MinWidth="42"
+                               TextAlignment="Center" />
 
-        <Border HorizontalAlignment="Right"
-                VerticalAlignment="Bottom"
-                Margin="0,0,250,10"
-                CornerRadius="8"
-                Padding="10,6"
-                Background="#D914171E">
-            <Border.Style>
-                <Style TargetType="Border">
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding Settings.ComparisonMode}" Value="DifferenceHeatmap">
-                            <Setter Property="Visibility" Value="Collapsed" />
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </Border.Style>
-            <Border.Effect>
-                <DropShadowEffect ShadowDepth="1" BlurRadius="4" Opacity="0.3" Color="#000000" />
-            </Border.Effect>
-            <StackPanel Orientation="Horizontal">
-                <Rectangle Width="4" Height="14" RadiusX="2" RadiusY="2" Fill="#c4b5fd" Margin="0,0,6,0" />
-                <TextBlock FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" AutomationProperties.AutomationId="LaneBTag">
-                    <Run Text="B" Foreground="#c4b5fd" /><Run Text=" " />
-                    <Run Text="{Binding RenderedLaneBAlgorithm, Mode=OneWay, TargetNullValue=—, FallbackValue=—}" Foreground="#b0b6c0" />
-                </TextBlock>
-            </StackPanel>
-        </Border>
+                    <Button Content="+"
+                            Command="{Binding ZoomInCommand}"
+                            Width="28" Height="28"
+                            FontSize="14" FontWeight="Bold"
+                            Foreground="#f0f2f5" Background="Transparent"
+                            BorderThickness="0" Cursor="Hand" />
 
-        <!-- Opacity slider (bottom-center, visible in Overlay mode only) -->
-        <Border x:Name="OpacitySliderPanel"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Bottom"
-                Margin="0,0,0,10"
-                CornerRadius="12"
-                Padding="12,6"
-                Background="#D914171E"
-                Visibility="Collapsed">
-            <Border.Effect>
-                <DropShadowEffect ShadowDepth="2" BlurRadius="8" Opacity="0.4" Color="#000000" />
-            </Border.Effect>
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <TextBlock Text="Opacity" Foreground="#8a909c" FontSize="10"
-                           VerticalAlignment="Center" Margin="0,0,8,0" />
-                <Slider AutomationProperties.AutomationId="OverlayOpacitySlider"
-                        Width="180"
-                        Minimum="0" Maximum="1"
-                        Value="{Binding Settings.ComparisonOverlayOpacity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                        VerticalAlignment="Center" />
-            </StackPanel>
-        </Border>
+                    <Rectangle Width="1" Fill="#1AFFFFFF" Margin="6,4" />
+
+                    <Button Content="Fit"
+                            Command="{Binding ZoomFitCommand}"
+                            Padding="10,4"
+                            FontSize="11" FontWeight="Medium"
+                            Foreground="#f0f2f5" Background="Transparent"
+                            BorderThickness="0" Cursor="Hand" />
+
+                    <Button Content="1:1"
+                            Command="{Binding ZoomActualCommand}"
+                            Padding="10,4"
+                            FontSize="11" FontWeight="Medium"
+                            Foreground="#f0f2f5" Background="Transparent"
+                            BorderThickness="0" Cursor="Hand" />
+                </StackPanel>
+            </Border>
+
+            <!-- Lane tags (bottom corners) — hidden in DifferenceHeatmap mode -->
+            <Border HorizontalAlignment="Left"
+                    VerticalAlignment="Bottom"
+                    Margin="10,0,0,10"
+                    CornerRadius="8"
+                    Padding="10,6"
+                    Background="#D914171E">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Settings.ComparisonMode}" Value="DifferenceHeatmap">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <Border.Effect>
+                    <DropShadowEffect ShadowDepth="1" BlurRadius="4" Opacity="0.3" Color="#000000" />
+                </Border.Effect>
+                <StackPanel Orientation="Horizontal">
+                    <Rectangle Width="4" Height="14" RadiusX="2" RadiusY="2" Fill="#7dd3fc" Margin="0,0,6,0" />
+                    <TextBlock FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" AutomationProperties.AutomationId="LaneATag">
+                        <Run Text="A" Foreground="#7dd3fc" /><Run Text=" " />
+                        <Run Text="{Binding RenderedLaneAAlgorithm, Mode=OneWay, TargetNullValue=—, FallbackValue=—}" Foreground="#b0b6c0" />
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+
+            <Border HorizontalAlignment="Right"
+                    VerticalAlignment="Bottom"
+                    Margin="0,0,250,10"
+                    CornerRadius="8"
+                    Padding="10,6"
+                    Background="#D914171E">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Settings.ComparisonMode}" Value="DifferenceHeatmap">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <Border.Effect>
+                    <DropShadowEffect ShadowDepth="1" BlurRadius="4" Opacity="0.3" Color="#000000" />
+                </Border.Effect>
+                <StackPanel Orientation="Horizontal">
+                    <Rectangle Width="4" Height="14" RadiusX="2" RadiusY="2" Fill="#c4b5fd" Margin="0,0,6,0" />
+                    <TextBlock FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" AutomationProperties.AutomationId="LaneBTag">
+                        <Run Text="B" Foreground="#c4b5fd" /><Run Text=" " />
+                        <Run Text="{Binding RenderedLaneBAlgorithm, Mode=OneWay, TargetNullValue=—, FallbackValue=—}" Foreground="#b0b6c0" />
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+
+            <!-- Opacity slider (bottom-center, visible in Overlay mode only) -->
+            <Border x:Name="OpacitySliderPanel"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Bottom"
+                    Margin="0,0,0,10"
+                    CornerRadius="12"
+                    Padding="12,6"
+                    Background="{StaticResource UiOverlaySurface}"
+                    Visibility="Collapsed">
+                <Border.Effect>
+                    <DropShadowEffect ShadowDepth="2" BlurRadius="8" Opacity="0.4" Color="#000000" />
+                </Border.Effect>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="Opacity" Foreground="#8a909c" FontSize="10"
+                               VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <Slider AutomationProperties.AutomationId="OverlayOpacitySlider"
+                            Width="180"
+                            Minimum="0" Maximum="1"
+                            Value="{Binding Settings.ComparisonOverlayOpacity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            VerticalAlignment="Center" />
+                </StackPanel>
+            </Border>
+        </Grid>
     </Grid>
 </UserControl>

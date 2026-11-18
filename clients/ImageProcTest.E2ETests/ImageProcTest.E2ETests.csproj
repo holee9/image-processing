@@ -62,6 +62,8 @@
     <!-- #161: the control resolves the mode through this, so it comes along. Pure strings. -->
     <Compile Include="..\..\gui\ImageProcTest\Models\ComparisonModes.cs"
              Link="Rendering\Linked\ComparisonModes.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Converters\MetricCellDisplayConverter.cs"
+             Link="Rendering\Linked\MetricCellDisplayConverter.cs" />
     <!-- QA-A-279c: the reader and classifier of the display-delay log (test builds only; no WPF). -->
     <Compile Include="..\..\gui\ImageProcTest\Services\FaultDelayLog.cs"
              Link="Fixtures\Linked\FaultDelayLog.cs" />
@@ -99,6 +101,7 @@
 
   <ItemGroup>
     <!-- GUI-C-270: exercise the imported-output window without loading the app/native modules. -->
+    <Page Include="..\..\gui\ImageProcTest\Resources\Presentation.xaml" Link="Resources\Presentation.xaml" />
     <Compile Include="..\..\gui\ImageProcTest\Views\ComparisonImportWindow.cs" Link="ImportedComparison\ComparisonImportWindow.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\Comparison\*.cs" Link="ImportedComparison\%(Filename)%(Extension)" />
     <Compile Include="..\..\gui\ImageProcTest\Services\AtomicFile.cs" Link="ImportedComparison\AtomicFile.cs" />

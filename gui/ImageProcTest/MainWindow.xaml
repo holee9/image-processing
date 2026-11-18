@@ -14,8 +14,14 @@
         Height="920"
         Width="1560"
         MinHeight="720"
-        MinWidth="1280">
+        MinWidth="1280"
+        Style="{StaticResource UiWindowStyle}">
     <Window.Resources>
+        <Style TargetType="Button" BasedOn="{StaticResource UiFocusableControl}" />
+        <Style TargetType="TextBox" BasedOn="{StaticResource UiFocusableControl}" />
+        <Style TargetType="CheckBox" BasedOn="{StaticResource UiFocusableControl}" />
+        <Style TargetType="ComboBox" BasedOn="{StaticResource UiFocusableControl}" />
+        <Style TargetType="MenuItem" BasedOn="{StaticResource UiFocusableControl}" />
         <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
         <viewModels:StringEqualsConverter x:Key="StringEquals" />
         <converters:FocusPanelVisibilityConverter x:Key="FocusPanelVisibility" />
@@ -54,12 +60,12 @@
         <!-- #175 HAZ-GUI-005 (1): shown while the ACTUAL backend is Mock. No close control on purpose. -->
         <Border DockPanel.Dock="Top"
                 AutomationProperties.AutomationId="MockBackendBanner"
-                Background="#FFB91C1C"
-                Padding="12,6"
+                Background="{StaticResource UiMockBackground}"
+                Padding="{StaticResource UiMockPadding}"
                 Visibility="{Binding IsMockBackend, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
             <TextBlock AutomationProperties.AutomationId="MockBackendBannerText"
                        Text="{Binding MockBackendWarning, Mode=OneWay}"
-                       Foreground="White"
+                       Foreground="{StaticResource UiNoticeText}"
                        FontWeight="Bold"
                        TextWrapping="Wrap" />
         </Border>
@@ -515,20 +521,20 @@
                            AutomationProperties.ItemStatus="{Binding ChainStatus}"
                            HorizontalContentAlignment="Stretch"
                            Content="{Binding FooterSummary}" ToolTip="{Binding DisplayChainStatus}">
-                <StatusBarItem.ContentTemplate><DataTemplate><TextBlock Text="{Binding}" TextTrimming="CharacterEllipsis" /></DataTemplate></StatusBarItem.ContentTemplate>
+                <StatusBarItem.ContentTemplate><DataTemplate><TextBlock Text="{Binding}" TextWrapping="Wrap" /></DataTemplate></StatusBarItem.ContentTemplate>
             </StatusBarItem>
             <StatusBarItem HorizontalContentAlignment="Stretch" ToolTip="{Binding PipelineTimings}">
                 <TextBlock AutomationProperties.AutomationId="FrameTimingText"
                            AutomationProperties.HelpText="{Binding FrameTimingText}"
                            Text="{Binding FooterTimings}"
-                           TextTrimming="CharacterEllipsis" />
+                           TextWrapping="Wrap" />
             </StatusBarItem>
             <StatusBarItem AutomationProperties.AutomationId="StatusBarText"
                            AutomationProperties.HelpText="{Binding StatusText}"
                            HorizontalContentAlignment="Stretch"
                            Content="{Binding FooterAlert}">
                 <StatusBarItem.ToolTip><StackPanel><TextBlock Text="{Binding FooterAlert}" /><TextBlock Text="{Binding StatusText}" /></StackPanel></StatusBarItem.ToolTip>
-                <StatusBarItem.ContentTemplate><DataTemplate><TextBlock Text="{Binding}" TextTrimming="CharacterEllipsis" /></DataTemplate></StatusBarItem.ContentTemplate>
+                <StatusBarItem.ContentTemplate><DataTemplate><TextBlock Text="{Binding}" TextWrapping="Wrap" /></DataTemplate></StatusBarItem.ContentTemplate>
             </StatusBarItem>
         </StatusBar>
 
@@ -584,7 +590,7 @@
              popup, and an item there is neither on screen nor in the UI Automation tree. The panel was the toolbar's LAST item and
              about 700 px wide; on the first native run the module reported the worker off and no banner could be found, because it was
              in the overflow. A notice that says images are being returned unchanged must not be one click away. -->
-        <Border DockPanel.Dock="Top" Background="#1AB45309" Padding="8,3"
+        <Border DockPanel.Dock="Top" Background="{StaticResource UiAiWarningBackground}" Padding="{StaticResource UiAiWarningPadding}"
                 AutomationProperties.AutomationId="AiWorkerPanel">
             <Border.Style>
                 <Style TargetType="Border">
@@ -606,7 +612,7 @@
                 <TextBlock x:Name="AiWorkerBanner"
                            AutomationProperties.AutomationId="AiWorkerBanner"
                            Text="{Binding AiWorkerBannerText}"
-                           Foreground="#b45309" FontWeight="SemiBold" VerticalAlignment="Center"
+                           Foreground="{StaticResource UiWarningText}" FontWeight="SemiBold" VerticalAlignment="Center"
                            TextWrapping="Wrap"
                            ToolTip="{Binding AiWorkerBannerText}" />
             </DockPanel>

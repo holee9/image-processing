@@ -31,7 +31,7 @@
             <StackPanel VerticalAlignment="Center">
                 <TextBlock Text="XPE Evaluation Workbench" Foreground="#f0f2f5"
                            FontSize="13" FontWeight="SemiBold" />
-                <TextBlock Foreground="#5a5f6a" FontSize="10">
+                <TextBlock Foreground="{StaticResource UiMetadataText}" FontSize="10">
                     <Run Text="ImageProcTest GUI" /><Run Text=" · " />
                     <Run Text="Run #" /><Run Text="{Binding RunSet.RunId, FallbackValue=—}" />
                 </TextBlock>
@@ -46,7 +46,7 @@
                 VerticalAlignment="Center">
             <StackPanel>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="RUN-SET" Foreground="#5a5f6a" FontSize="9"
+                    <TextBlock Text="RUN-SET" Foreground="{StaticResource UiMetadataText}" FontSize="9"
                                FontWeight="Medium" VerticalAlignment="Center" Margin="0,0,8,0" />
                     <TextBlock Foreground="#f0f2f5" FontSize="12" FontWeight="SemiBold"
                                VerticalAlignment="Center" Margin="0,0,12,0">
@@ -137,13 +137,13 @@
 
             <!-- Ghost icon buttons: search, settings, help -->
             <Button Content="⌕" Width="36" Height="36" FontSize="14"
-                    Background="Transparent" Foreground="#5a5f6a" BorderThickness="0"
+                    Background="Transparent" Foreground="{StaticResource UiMetadataText}" BorderThickness="0"
                     Cursor="Hand" Margin="0,0,2,0" ToolTip="Search" />
             <Button Content="⚙" Width="36" Height="36" FontSize="14"
-                    Background="Transparent" Foreground="#5a5f6a" BorderThickness="0"
+                    Background="Transparent" Foreground="{StaticResource UiMetadataText}" BorderThickness="0"
                     Cursor="Hand" Margin="0,0,2,0" ToolTip="Settings" />
             <Button Content="?" Width="36" Height="36" FontSize="14"
-                    Background="Transparent" Foreground="#5a5f6a" BorderThickness="0"
+                    Background="Transparent" Foreground="{StaticResource UiMetadataText}" BorderThickness="0"
                     Cursor="Hand" ToolTip="Help" />
         </StackPanel>
     </Grid>

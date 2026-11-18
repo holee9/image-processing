@@ -120,7 +120,7 @@ public sealed class ImportedMarkerTests
             hosted.Dispatcher.Invoke(() =>
             {
                 Assert.Equal(20, Field<ListBox>(hosted, "_markerList").Items.Count);
-                Assert.Contains("차이가 넓게 퍼짐 — 후보 25개 중 상위 20개 표시", Field<TextBlock>(hosted, "_markerWarning").Text);
+                Assert.Contains("Widespread differences — showing the top 20 of 25 candidates", Field<TextBlock>(hosted, "_markerWarning").Text);
                 var canvas = Field<Canvas>(hosted, "_overlayA");
                 Assert.Empty(canvas.Children.OfType<System.Windows.Shapes.Rectangle>().Where(x => Equals(x.Tag, "marker")));
                 Field<ListBox>(hosted, "_markerList").SelectedIndex = 0;

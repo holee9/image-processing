@@ -19,6 +19,20 @@ namespace ImageProcTest.Controls;
 
 public sealed class ImageComparisonViewport : FrameworkElement
 {
+    // @MX:ANCHOR: [AUTO] Main-window canvases opt into a neutral background without changing detached viewers.
+    // @MX:REASON: Three MainWindow viewports set this DP; the frozen legacy default is safe across STA threads.
+    public static readonly DependencyProperty BackgroundProperty =
+        System.Windows.Controls.Control.BackgroundProperty.AddOwner(
+            typeof(ImageComparisonViewport),
+            new FrameworkPropertyMetadata(new SolidColorBrush(WpfColor.FromRgb(8, 13, 23)).GetAsFrozen(),
+                FrameworkPropertyMetadataOptions.AffectsRender));
+
+    public WpfBrush? Background
+    {
+        get => (WpfBrush?)GetValue(BackgroundProperty);
+        set => SetValue(BackgroundProperty, value);
+    }
+
     public static readonly DependencyProperty SourceImageProperty =
         DependencyProperty.Register(
             nameof(SourceImage),
@@ -331,7 +345,7 @@ public sealed class ImageComparisonViewport : FrameworkElement
         base.OnRender(drawingContext);
 
         var viewport = new Rect(0, 0, ActualWidth, ActualHeight);
-        drawingContext.DrawRectangle(new SolidColorBrush(WpfColor.FromRgb(8, 13, 23)), null, viewport);
+        drawingContext.DrawRectangle(Background, null, viewport);
 
         if (SourceImage is null)
         {
