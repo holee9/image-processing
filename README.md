@@ -118,6 +118,8 @@ dotnet clients\ImageProcTest\bin\Debug\net8.0-windows\ImageProcTest.dll --run-pr
 | [Algorithm-Benchmark-Pack-Spec](docs/project/Algorithm-Benchmark-Pack-Spec.md) | 벤치마크 묶음 정의와 동결 규칙 |
 | [Algorithm-Evaluation-Protocol](docs/project/Algorithm-Evaluation-Protocol.md) | 알고리즘 개정 비교·승격·보류 기준 |
 | [Regulatory-Feature-Boundary-Matrix](docs/project/Regulatory-Feature-Boundary-Matrix.md) | 기능별 출시 가능 여부 구분 |
+| [XPE-PRD-002](docs/post-processing/xpe/XPE-PRD-002_Detailed_Project_Execution_PRD.md) | 상세 실행 PRD |
+| [XPE-PRD-003](docs/post-processing/xpe/XPE-PRD-003_PRD_Decomposition_and_Backlog.md) | PRD 분해와 백로그(기록상 백로그) |
 
 ### IEC 62304 문서 묶음
 
