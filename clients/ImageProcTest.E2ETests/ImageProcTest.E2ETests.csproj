@@ -99,6 +99,7 @@
 
   <ItemGroup>
     <!-- GUI-C-270: exercise the imported-output window without loading the app/native modules. -->
+    <Page Include="..\..\gui\ImageProcTest\Resources\Presentation.xaml" Link="Resources\Presentation.xaml" />
     <Compile Include="..\..\gui\ImageProcTest\Views\ComparisonImportWindow.cs" Link="ImportedComparison\ComparisonImportWindow.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\Comparison\*.cs" Link="ImportedComparison\%(Filename)%(Extension)" />
     <Compile Include="..\..\gui\ImageProcTest\Services\AtomicFile.cs" Link="ImportedComparison\AtomicFile.cs" />

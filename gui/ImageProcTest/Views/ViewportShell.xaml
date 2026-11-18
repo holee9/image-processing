@@ -18,7 +18,7 @@
              main viewport received null for both images while every check looked elsewhere. The
              two-lane rendering those properties were meant for is #173. W-20 now reads what this
              control actually received (see ImageComparisonViewport's automation peer). -->
-        <controls:ImageComparisonViewport x:Name="Viewport"
+        <controls:ImageComparisonViewport x:Name="Viewport" Background="{DynamicResource UiImageBackground}"
                                           AutomationProperties.AutomationId="WorkbenchViewport"
                                           SourceImage="{Binding SourceImage}"
                                           ProcessedImage="{Binding ProcessedImage}"
@@ -45,7 +45,7 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
             <Grid>
-                <controls:ImageComparisonViewport x:Name="LaneAViewport"
+                <controls:ImageComparisonViewport x:Name="LaneAViewport" Background="{DynamicResource UiImageBackground}"
                                                   AutomationProperties.AutomationId="LaneAViewport"
                                                   CompareMode="ProcessedOnly"
                                                   SourceImage="{Binding SourceImage}"
@@ -76,7 +76,7 @@
                 </Border>
             </Grid>
             <Grid Grid.Column="2">
-                <controls:ImageComparisonViewport x:Name="LaneBViewport"
+                <controls:ImageComparisonViewport x:Name="LaneBViewport" Background="{DynamicResource UiImageBackground}"
                                                   AutomationProperties.AutomationId="LaneBViewport"
                                                   CompareMode="ProcessedOnly"
                                                   SourceImage="{Binding SourceImage}"

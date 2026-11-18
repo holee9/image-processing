@@ -22,6 +22,10 @@ namespace ImageProcTest.Views;
 /// </summary>
 public sealed class ComparisonImportWindow : Window
 {
+    // @MX:ANCHOR: [AUTO] Shared UI brushes preserve the measurement overlay colors.
+    // @MX:REASON: The notice, two viewers, region markers and ROI all read the same keyed dictionary.
+    private Brush ResourceBrush(string key) => (Brush)FindResource(key);
+
     private readonly Func<string, string, string, IComparisonBackend> _backendFactory;
     private readonly string _rememberFile = System.IO.Path.Combine(ComparisonPaths.DataRoot, "comparison-import.json");
 
@@ -72,7 +76,7 @@ public sealed class ComparisonImportWindow : Window
     private readonly Button _markerApply = new() { Content = "Find difference regions", IsEnabled = false };
     private readonly CheckBox _showDefectMarks = new() { Content = "Defect-map disagreement (cyan)", IsEnabled = false };
     private readonly TextBlock _markerStatus = new() { TextWrapping = TextWrapping.Wrap };
-    private readonly TextBlock _markerWarning = new() { FontWeight = FontWeights.Bold, Foreground = Brushes.DarkOrange, TextWrapping = TextWrapping.Wrap };
+    private readonly TextBlock _markerWarning = new() { FontWeight = FontWeights.Bold, TextWrapping = TextWrapping.Wrap };
     private int _markerCandidateCount;
     private readonly ListBox _markerList = new() { MinWidth = 290, MaxHeight = 250 };
     private ComparisonMarkers.Prepared? _markerPrepared;
@@ -102,15 +106,23 @@ public sealed class ComparisonImportWindow : Window
     public ComparisonImportWindow(Func<string, string, string, IComparisonBackend> backendFactory)
     {
         _backendFactory = backendFactory;
+        Resources.MergedDictionaries.Add(new ResourceDictionary
+        {
+            Source = new Uri($"/{typeof(ComparisonImportWindow).Assembly.GetName().Name};component/Resources/Presentation.xaml", UriKind.Relative),
+        });
+        Style = (Style)FindResource("UiWindowStyle");
+        foreach (var type in new[] { typeof(Button), typeof(TextBox), typeof(CheckBox), typeof(ListBox) })
+            Resources[type] = new Style(type, (Style)FindResource("UiFocusableControl"));
+        _markerWarning.SetResourceReference(TextBlock.ForegroundProperty, "UiWarningText");
         Title = "Compare Imported 2G and New PRE Outputs";
         Width = 1180; Height = 900; MinWidth = 820; MinHeight = 560;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         MaxHeight = SystemParameters.WorkArea.Height;
         Auto(this, "ComparisonImportWindow");
 
-        var root = new StackPanel { Margin = new Thickness(14) };
+        var root = new StackPanel { Margin = (Thickness)FindResource("UiComparisonMargin") };
         root.Children.Add(Label("This window imports two existing outputs (A = official Samsung 2G X64W, B = new PRE), displays them under the same conditions and computes A−B statistics. It does not load vendor DLLs, run an engine, control hardware or judge image quality. Differences describe these two files; they do not establish improvement or a pass. The contract script, run as a child process, performs validation and calculation."));
-        var provenance = new TextBlock { Text = "Synthetic wiring verification / no vendor measurement — this window does not verify whether inputs are real acquisitions or vendor production outputs. The contract has no provenance-verification field. No result establishes verified production history.", TextWrapping = TextWrapping.Wrap, FontWeight = FontWeights.Bold, Foreground = Brushes.White, Background = Brushes.DarkOrange, Padding = new Thickness(8, 4, 8, 4), Margin = new Thickness(0, 2, 0, 4) };
+        var provenance = new TextBlock { Text = "Synthetic wiring verification / no vendor measurement — this window does not verify whether inputs are real acquisitions or vendor production outputs. The contract has no provenance-verification field. No result establishes verified production history.", TextWrapping = TextWrapping.Wrap, FontWeight = FontWeights.Bold, Foreground = ResourceBrush("UiProvenanceText"), Background = ResourceBrush("UiProvenanceBackground"), Padding = (Thickness)FindResource("UiNoticePadding"), Margin = (Thickness)FindResource("UiCompactMargin") };
         Auto(provenance, "ComparisonProvenanceNotice");
         root.Children.Add(provenance);
         Auto(_state, "ComparisonStateText");
@@ -128,9 +140,9 @@ public sealed class ComparisonImportWindow : Window
         root.Children.Add(_review);
 
         root.Children.Add(Label("Manifest (JSON, schema xpe-2g-pre-comparison/4). The script only reads this directory."));
-        var pathRow = new DockPanel { Margin = new Thickness(0, 2, 0, 4) };
-        var browse = new Button { Content = "Browse…", Margin = new Thickness(6, 0, 0, 0), Padding = new Thickness(10, 2, 10, 2) };
-        _openButton.Margin = new Thickness(6, 0, 0, 0); _openButton.Padding = new Thickness(10, 2, 10, 2);
+        var pathRow = new DockPanel { Margin = (Thickness)FindResource("UiCompactMargin") };
+        var browse = new Button { Content = "Browse…", Margin = (Thickness)FindResource("UiControlGap"), Padding = (Thickness)FindResource("UiButtonPadding") };
+        _openButton.Margin = (Thickness)FindResource("UiControlGap"); _openButton.Padding = (Thickness)FindResource("UiButtonPadding");
         DockPanel.SetDock(_openButton, Dock.Right); DockPanel.SetDock(browse, Dock.Right);
         pathRow.Children.Add(_openButton); pathRow.Children.Add(browse); pathRow.Children.Add(_manifestPath);
         root.Children.Add(pathRow);
@@ -251,7 +263,7 @@ public sealed class ComparisonImportWindow : Window
         host.Children.Add(image); host.Children.Add(overlay);
         host.LayoutTransform = scale;
         scroll.Content = host;
-        scroll.Background = Brushes.Black;
+        scroll.SetResourceReference(BackgroundProperty, "UiImageBackground");
         Auto(scroll, id);
         var panel = new StackPanel { Margin = new Thickness(0, 0, 6, 0) };
         panel.Children.Add(new TextBlock { Text = title, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 2) });
@@ -483,7 +495,7 @@ public sealed class ComparisonImportWindow : Window
             if (_closed || gen != _generation || operation != _markerOperation) return;
             _differenceK = k; RefreshDifference();
             _markerCandidateCount = result.CandidateCount;
-            _markerWarning.Text = result.CandidateCount > 20 ? $"차이가 넓게 퍼짐 — 후보 {result.CandidateCount}개 중 상위 20개 표시" : "";
+            _markerWarning.Text = result.CandidateCount > 20 ? $"Widespread differences — showing the top 20 of {result.CandidateCount} candidates" : "";
             for (var i = 0; i < result.Regions.Count; i++) _markerList.Items.Add(new MarkerRow(i + 1, result.Regions[i]));
             _markerList.SelectedIndex = -1;
             _markerStatus.Text = $"{result.CandidateCount} uncapped candidates; {result.Regions.Count}/20 shown by sum |A−B|. k={k.ToString("G8", CultureInfo.InvariantCulture)}, N={n} sample px, s={result.Scale.ToString("G8", CultureInfo.InvariantCulture)}, step {_step}. Lime boxes: difference regions. " + (_defectMasks?.Status ?? "");
@@ -518,9 +530,9 @@ public sealed class ComparisonImportWindow : Window
                 // Dense fields retain the ranked list but draw no automatic difference boxes. Selection may highlight one region.
                 if (_markerCandidateCount > 20 && !ReferenceEquals(_markerList.SelectedItem, row)) continue;
                 var r = row.Region;
-                var box = new System.Windows.Shapes.Rectangle { Width = r.Width, Height = r.Height, Stroke = Brushes.Lime, StrokeThickness = 1 / Math.Max(_zoom, 1e-6), Tag = "marker", IsHitTestVisible = false };
+                var box = new System.Windows.Shapes.Rectangle { Width = r.Width, Height = r.Height, Stroke = ResourceBrush("UiRegionStroke"), StrokeThickness = 1 / Math.Max(_zoom, 1e-6), Tag = "marker", IsHitTestVisible = false };
                 Canvas.SetLeft(box, r.X); Canvas.SetTop(box, r.Y); canvas.Children.Add(box);
-                var label = new TextBlock { Text = row.Number.ToString(CultureInfo.InvariantCulture), Foreground = Brushes.Lime, Background = Brushes.Black, FontSize = 12 / Math.Max(_zoom, 1e-6), Tag = "marker", IsHitTestVisible = false };
+                var label = new TextBlock { Text = row.Number.ToString(CultureInfo.InvariantCulture), Foreground = ResourceBrush("UiRegionStroke"), Background = ResourceBrush("UiImageBackground"), FontSize = (double)FindResource("UiMarkerFontSize") / Math.Max(_zoom, 1e-6), Tag = "marker", IsHitTestVisible = false };
                 Canvas.SetLeft(label, r.X); Canvas.SetTop(label, r.Y); canvas.Children.Add(label);
             }
         }
@@ -627,7 +639,7 @@ public sealed class ComparisonImportWindow : Window
             }
             bytes[offset + 3] = 255;
         }
-        _differenceLegend = $"Signed original-value A−B ({(extrema ? "extrema" : fallback ? "extrema fallback: k·s is non-finite" : "scale k·s")}): blue −{range.ToString("G6", CultureInfo.InvariantCulture)} · white 0 · red +{range.ToString("G6", CultureInfo.InvariantCulture)}; saturated {saturated}/{finite} display pixels (포화 화소 수). Magenta = non-finite. W/L does not change differences.";
+        _differenceLegend = $"Signed original-value A−B ({(extrema ? "extrema" : fallback ? "extrema fallback: k·s is non-finite" : "scale k·s")}): blue −{range.ToString("G6", CultureInfo.InvariantCulture)} · white 0 · red +{range.ToString("G6", CultureInfo.InvariantCulture)}; saturated {saturated}/{finite} display pixels. Magenta = non-finite. W/L does not change differences.";
         var bitmap = BitmapSource.Create(_displayWidth, _displayHeight, 96, 96, PixelFormats.Bgra32, null, bytes, _displayWidth * 4);
         bitmap.Freeze(); return bitmap;
     }
@@ -639,7 +651,7 @@ public sealed class ComparisonImportWindow : Window
         {
             canvas.Children.Clear();
             canvas.ClipToBounds = true;
-            var rect = new System.Windows.Shapes.Rectangle { Width = Math.Max(1.0, (double)L("width") / _step), Height = Math.Max(1.0, (double)L("height") / _step), Stroke = Brushes.Yellow, StrokeThickness = 1.0 / Math.Max(_zoom, 1e-6), IsHitTestVisible = false };
+            var rect = new System.Windows.Shapes.Rectangle { Width = Math.Max(1.0, (double)L("width") / _step), Height = Math.Max(1.0, (double)L("height") / _step), Stroke = ResourceBrush("UiRoiStroke"), StrokeThickness = 1.0 / Math.Max(_zoom, 1e-6), IsHitTestVisible = false };
             Canvas.SetLeft(rect, (double)L("x") / _step); Canvas.SetTop(rect, (double)L("y") / _step);
             canvas.Children.Add(rect);
         }

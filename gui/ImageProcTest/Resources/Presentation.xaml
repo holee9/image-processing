@@ -1,0 +1,48 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+    <!-- Keyed resources only: App shares the values, while the two owning windows opt into styles. -->
+    <x:Static x:Key="UiFontFamily" Member="SystemFonts.MessageFontFamily" />
+    <x:Static x:Key="UiFontSize" Member="SystemFonts.MessageFontSize" />
+    <sys:Double x:Key="UiMarkerFontSize">12</sys:Double>
+    <SolidColorBrush x:Key="UiMockBackground" Color="#FFB91C1C" />
+    <SolidColorBrush x:Key="UiNoticeText" Color="White" />
+    <SolidColorBrush x:Key="UiAiWarningBackground" Color="#1AB45309" />
+    <SolidColorBrush x:Key="UiWarningText" Color="#FF9A4D00" />
+    <SolidColorBrush x:Key="UiProvenanceBackground" Color="DarkOrange" />
+    <SolidColorBrush x:Key="UiProvenanceText" Color="Black" />
+    <SolidColorBrush x:Key="UiImageBackground" Color="Black" />
+    <SolidColorBrush x:Key="UiRegionStroke" Color="Lime" />
+    <SolidColorBrush x:Key="UiRoiStroke" Color="Yellow" />
+    <SolidColorBrush x:Key="UiFocusBrush" Color="#FF005FCC" />
+    <SolidColorBrush x:Key="UiMetadataText" Color="#FF8A909C" />
+    <Thickness x:Key="UiComparisonMargin">14</Thickness>
+    <Thickness x:Key="UiCompactMargin">0,2,0,4</Thickness>
+    <Thickness x:Key="UiControlGap">6,0,0,0</Thickness>
+    <Thickness x:Key="UiButtonPadding">10,2</Thickness>
+    <Thickness x:Key="UiNoticePadding">8,4</Thickness>
+    <Thickness x:Key="UiAiWarningPadding">8,3</Thickness>
+    <Thickness x:Key="UiMockPadding">12,6</Thickness>
+    <Style x:Key="UiWindowStyle" TargetType="Window">
+        <Setter Property="FontFamily" Value="{StaticResource UiFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource UiFontSize}" />
+    </Style>
+    <Style x:Key="UiFocusVisual" TargetType="Control">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Rectangle Margin="1" Stroke="{StaticResource UiFocusBrush}" StrokeThickness="1"
+                               StrokeDashArray="1,1" SnapsToDevicePixels="True" IsHitTestVisible="False" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="UiFocusableControl" TargetType="Control">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource UiFocusVisual}" />
+        <Style.Triggers>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter Property="BorderBrush" Value="{StaticResource UiFocusBrush}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+</ResourceDictionary>

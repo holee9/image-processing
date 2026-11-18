@@ -117,10 +117,10 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="48" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Foreground="#5a5f6a" FontSize="9" Text="METRIC" />
+                        <TextBlock Foreground="{StaticResource UiMetadataText}" FontSize="9" Text="METRIC" />
                         <TextBlock Grid.Column="1" Foreground="#7dd3fc" FontSize="9" Text="LANE A" HorizontalAlignment="Right" />
                         <TextBlock Grid.Column="2" Foreground="#c4b5fd" FontSize="9" Text="LANE B" HorizontalAlignment="Right" />
-                        <TextBlock Grid.Column="3" Foreground="#5a5f6a" FontSize="9" Text="Delta" HorizontalAlignment="Right" />
+                        <TextBlock Grid.Column="3" Foreground="{StaticResource UiMetadataText}" FontSize="9" Text="Delta" HorizontalAlignment="Right" />
                     </Grid>
 
                     <Rectangle Height="1" Fill="#1AFFFFFF" Margin="0,0,0,8" />
