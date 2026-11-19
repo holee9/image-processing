@@ -5,6 +5,13 @@
              xmlns:viewModels="clr-namespace:ImageProcTest.ViewModels"
              Height="64"
              Background="#14171e">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/ImageProcTest;component/Resources/Presentation.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
     <Grid Margin="12,0">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />

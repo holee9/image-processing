@@ -7,12 +7,17 @@
              Width="380"
              Background="#14171e">
     <UserControl.Resources>
-        <local:StringEqualsConverter x:Key="TabEquals" xmlns:local="clr-namespace:ImageProcTest.Views" />
-        <local:EnglishLogDisplayConverter x:Key="EnglishLogDisplay" xmlns:local="clr-namespace:ImageProcTest.Views" />
-        <viewModels:StringEqualsConverter x:Key="StringEquals" />
-        <converters:TabAndToggleVisibilityConverter x:Key="TabAndToggle" />
-        <converters:MetricCellDisplayConverter x:Key="MetricCellDisplay" />
-        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/ImageProcTest;component/Resources/Presentation.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <local:StringEqualsConverter x:Key="TabEquals" xmlns:local="clr-namespace:ImageProcTest.Views" />
+            <local:EnglishLogDisplayConverter x:Key="EnglishLogDisplay" xmlns:local="clr-namespace:ImageProcTest.Views" />
+            <viewModels:StringEqualsConverter x:Key="StringEquals" />
+            <converters:TabAndToggleVisibilityConverter x:Key="TabAndToggle" />
+            <converters:MetricCellDisplayConverter x:Key="MetricCellDisplay" />
+            <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+        </ResourceDictionary>
     </UserControl.Resources>
 
     <DockPanel>

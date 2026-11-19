@@ -5,8 +5,13 @@
              Height="56"
              Background="#14171e">
     <UserControl.Resources>
-        <local:RunSetBarWidthConverter x:Key="BarWidth" />
-        <local:RunSetRemainderConverter x:Key="BarRemainder" />
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/ImageProcTest;component/Resources/Presentation.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <local:RunSetBarWidthConverter x:Key="BarWidth" />
+            <local:RunSetRemainderConverter x:Key="BarRemainder" />
+        </ResourceDictionary>
     </UserControl.Resources>
     <Grid Margin="12,0">
         <Grid.ColumnDefinitions>

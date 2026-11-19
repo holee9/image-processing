@@ -14,18 +14,25 @@
         Height="920"
         Width="1560"
         MinHeight="720"
-        MinWidth="1280"
-        Style="{StaticResource UiWindowStyle}">
+        MinWidth="1280">
     <Window.Resources>
-        <Style TargetType="Button" BasedOn="{StaticResource UiFocusableControl}" />
-        <Style TargetType="TextBox" BasedOn="{StaticResource UiFocusableControl}" />
-        <Style TargetType="CheckBox" BasedOn="{StaticResource UiFocusableControl}" />
-        <Style TargetType="ComboBox" BasedOn="{StaticResource UiFocusableControl}" />
-        <Style TargetType="MenuItem" BasedOn="{StaticResource UiFocusableControl}" />
-        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
-        <viewModels:StringEqualsConverter x:Key="StringEquals" />
-        <converters:FocusPanelVisibilityConverter x:Key="FocusPanelVisibility" />
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/ImageProcTest;component/Resources/Presentation.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <Style TargetType="Button" BasedOn="{StaticResource UiFocusableControl}" />
+            <Style TargetType="TextBox" BasedOn="{StaticResource UiFocusableControl}" />
+            <Style TargetType="CheckBox" BasedOn="{StaticResource UiFocusableControl}" />
+            <Style TargetType="ComboBox" BasedOn="{StaticResource UiFocusableControl}" />
+            <Style TargetType="MenuItem" BasedOn="{StaticResource UiFocusableControl}" />
+            <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+            <viewModels:StringEqualsConverter x:Key="StringEquals" />
+            <converters:FocusPanelVisibilityConverter x:Key="FocusPanelVisibility" />
+        </ResourceDictionary>
     </Window.Resources>
+    <Window.Style>
+        <StaticResource ResourceKey="UiWindowStyle" />
+    </Window.Style>
 
     <!--
         Comparison-mode key gestures (GUI-C-58, #149 G-2). MENU-001 section 9.3 and 10.1 specify six;
