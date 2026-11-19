@@ -7,9 +7,14 @@
              mc:Ignorable="d"
              Background="#08090c">
     <UserControl.Resources>
-        <local:ZoomPercentConverter x:Key="ZoomPercentConverter" xmlns:local="clr-namespace:ImageProcTest.Views" />
-        <local:BannerBelowHudConverter x:Key="BannerBelowHud" xmlns:local="clr-namespace:ImageProcTest.Views" />
-        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/ImageProcTest;component/Resources/Presentation.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <local:ZoomPercentConverter x:Key="ZoomPercentConverter" xmlns:local="clr-namespace:ImageProcTest.Views" />
+            <local:BannerBelowHudConverter x:Key="BannerBelowHud" xmlns:local="clr-namespace:ImageProcTest.Views" />
+            <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+        </ResourceDictionary>
     </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>

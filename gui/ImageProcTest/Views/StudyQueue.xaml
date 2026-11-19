@@ -5,8 +5,13 @@
              Width="280"
              Background="#14171e">
     <UserControl.Resources>
-        <models:StudyStatusToGlyphConverter x:Key="StatusGlyph" />
-        <models:StudyStatusToColorConverter x:Key="StatusColor" />
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/ImageProcTest;component/Resources/Presentation.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <models:StudyStatusToGlyphConverter x:Key="StatusGlyph" />
+            <models:StudyStatusToColorConverter x:Key="StatusColor" />
+        </ResourceDictionary>
     </UserControl.Resources>
 
     <DockPanel>

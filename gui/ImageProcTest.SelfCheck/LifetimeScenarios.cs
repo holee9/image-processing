@@ -436,6 +436,7 @@ internal static class LifetimeScenarios
 
     public static void Run(bool studyContractOnly = false, bool laneContractOnly = false, bool displayContractOnly = false)
     {
+        PresentationResourceScenarios.Run();
         var scratch = studyContractOnly || laneContractOnly || displayContractOnly ? Path.Combine(AppContext.BaseDirectory, displayContractOnly ? "gui-c-258-check" : laneContractOnly ? "gui-c-257-check" : "gui-c-256-check") : TempDirectory();
         Directory.CreateDirectory(scratch);
         var rawPath = WriteSmallRaw(scratch);
@@ -654,7 +655,15 @@ internal static class LifetimeScenarios
             {
                 var container = metrics.ItemContainerGenerator.ContainerFromIndex(i);
                 var cells = container is null ? [] : VisualChildren(container).OfType<System.Windows.Controls.TextBlock>().ToArray();
-                Check(new[] { "Metric", "LaneA", "LaneB" }.All(name => cells.Any(c => c.Text == Text(rows[i], name) && c.RenderSize.Width > 0 && c.RenderSize.Height > 0)), $"actual arranged TextBlocks must display label and lane values for {Text(rows[i], "Metric")}");
+                string ExpectedCell(string name)
+                {
+                    var value = Text(rows[i], name);
+                    if (name == "Metric") return value;
+                    return value.Replace("RequestedNotApplied", "Requested / not applied", StringComparison.Ordinal)
+                        .Replace("AppliedNoChange", "Applied / no change", StringComparison.Ordinal)
+                        .Replace("NotRequested", "Not requested", StringComparison.Ordinal);
+                }
+                Check(new[] { "Metric", "LaneA", "LaneB" }.All(name => cells.Any(c => c.Text == ExpectedCell(name) && c.RenderSize.Width > 0 && c.RenderSize.Height > 0)), $"actual arranged TextBlocks must display label and lane values for {Text(rows[i], "Metric")}");
             }
             foreach (var stage in new[] { StageIds.Preprocess, StageIds.EnhanceBasic, StageIds.Gsvg, StageIds.AiBoneSuppression })
                 Check(rows.Any(r => Text(r, "Metric") == stage && Text(r, "LaneA").Length > 0 && Text(r, "LaneB").Length > 0), $"Metrics must contain each lane's {stage} status/time");
